@@ -1,12 +1,13 @@
 // BusyBus Service Worker
 // ⚠️ Bump CACHE name on every index.html deploy
-const CACHE = 'busybus-v6';
+const CACHE = 'busybus-v7';
 
 // All external API calls — never cache these
 const BYPASS = [
   'generativelanguage.googleapis.com',  // Gemini AI
   'arrivelah2.busrouter.sg',            // Live bus arrivals
-  'busrouter.sg',                       // Bus stop directory
+  'busrouter.sg',                       // (legacy, kept for safety)
+  'raw.githubusercontent.com',          // Bus stop directory
 ];
 
 self.addEventListener('install', e => {
