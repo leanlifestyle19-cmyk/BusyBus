@@ -1672,7 +1672,17 @@ const AIChat = {
       `<button class="chat-opt" data-opt="${encodeURIComponent(o)}">${o}</button>`
     ).join('');
     optArea.querySelectorAll('.chat-opt').forEach(b => {
-      b.addEventListener('click', () => AIChat.send(decodeURIComponent(b.dataset.opt)));
+      b.addEventListener('click', () => {
+        const opt = decodeURIComponent(b.dataset.opt);
+        // Smart routing: "Check stop XXXXX arrivals" → open arrivals screen directly
+        const stopMatch = opt.match(/\b(\d{5})\b/);
+        if (stopMatch && /check|arrival|stop|bus/i.test(opt)) {
+          Arrivals.showForStop(stopMatch[1], `Stop ${stopMatch[1]}`);
+          App._prevScreen = 'ai';
+          return;
+        }
+        AIChat.send(opt);
+      });
     });
   },
 
@@ -1703,26 +1713,35 @@ const AIChat = {
     // Build prompt
     const dests = Store.dests();
     const destStr = dests.map(d=>`${d.emoji||'📍'} ${d.label}: stop ${d.stopCode} (${d.stopName}), buses ${d.buses?.join(', ')}`).join('\n');
-    const system = `You are BusyBus AI, a Singapore bus commuter assistant for adults.
+    const system = `You are BusyBus AI, a Singapore bus commuter assistant running INSIDE the BusyBus app.
+
+CRITICAL — BUSYBUS APP CAPABILITIES:
+BusyBus has a built-in real-time arrivals checker (powered by arrivelah2.busrouter.sg).
+- When you know a stop code, ALWAYS offer to check it directly in the app.
+- Format the option as: "Check stop XXXXX arrivals" — the app will open it automatically.
+- NEVER say "I cannot provide real-time arrival times" — the app can do this.
+- NEVER tell users to visit external websites for arrivals — BusyBus handles this.
+Example: if the user needs Bus 195 from stop 14019, include option: "Check stop 14019 arrivals"
 
 SINGAPORE BUS KNOWLEDGE:
-- Bus stops: 5-digit codes. Arrivals at arrivelah2.busrouter.sg/?id={code}
+- Bus stops: 5-digit codes. Arrivals checked in-app via the stop code field on Home screen.
 - Night Rider (NR) buses: 11:30pm–4:30am Fri/Sat and eve of public holidays
-- Premium (P-series): air-con, limited stops
+- Premium (P-series): air-con, limited stops, higher fare
 - Key hubs: Tampines, Bedok, Jurong East, Woodlands, Yishun, Ang Mo Kio, Serangoon, Bishan, Toa Payoh, Orchard, City Hall, Harbourfront
-- Key malls: VivoCity (Harbourfront), JEM/Westgate (Jurong East), NEX (Serangoon), Causeway Point (Woodlands), AMK Hub, Northpoint (Yishun)
-- Home Team Academy: Queensway area (near Queensway MRT on CCL)
-- EZ-Link accepted on all buses. Fares from ~$0.77 (adult, no transfer discount if >45min)
+- Key malls/landmarks: VivoCity (Harbourfront), JEM/Westgate (Jurong East MRT), NEX (Serangoon), Causeway Point (Woodlands), AMK Hub, Northpoint (Yishun), Novena Square (Novena MRT, NS20)
+- Home Team Academy (HTA): near Queensway, use stops around 11041 (Queensway SC) area; Bus 195 serves this area
+- EZ-Link accepted on all buses. Adult fare from ~$0.77
+- Transfer discount applies within 45 min on same EZ-Link tap-out/tap-in
 
 USER'S SAVED DESTINATIONS:
 ${destStr || 'None saved.'}
 
 RULES:
-- Be direct and practical. This is for a commuter, not a child.
-- Give specific bus numbers, stop names, and transfer points where known.
-- Acknowledge what you don't know rather than guessing specific ETAs.
+- Be direct and practical.
+- Give specific bus numbers and stop codes wherever possible.
+- When you mention a stop code, include a "Check stop XXXXX arrivals" option.
 - Always end with JSON on its own line: {"options":["Opt1","Opt2"]}
-- 2-3 options max, under 5 words each.`;
+- 2-3 options max, under 6 words each.`;
     // Sanitise history for Gemini
     const raw = AIChat.history.slice(-10);
     const contents = [];
