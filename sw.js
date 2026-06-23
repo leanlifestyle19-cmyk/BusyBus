@@ -1,6 +1,6 @@
 // BusyBus Service Worker
 // ⚠️ Bump CACHE name on every index.html deploy
-const CACHE = 'busybus-v1';
+const CACHE = 'busybus-v2';
 
 // All external API calls — never cache these
 const BYPASS = [
