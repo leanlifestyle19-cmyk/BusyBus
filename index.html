@@ -1,0 +1,2057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="BusyBus">
+<meta name="theme-color" content="#0EA5E9" id="theme-meta">
+<link rel="manifest" href="manifest.json">
+<title>BusyBus</title>
+<style>
+/* ── RESET ─────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#F0F9FF}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  color:var(--tx);-webkit-font-smoothing:antialiased;overscroll-behavior:none;user-select:none}
+button{cursor:pointer;border:none;background:none;font-family:inherit}
+input,select,textarea{font-family:inherit;-webkit-appearance:none}
+a{color:inherit;text-decoration:none}
+.hidden{display:none!important}
+.mono{font-family:'Courier New',Courier,monospace;font-weight:700;letter-spacing:-.5px}
+
+/* ── DESIGN TOKENS — LIGHT (OCEAN) ─────────── */
+:root{
+  --brand:#0EA5E9; --brand-dk:#0284C7; --brand-lt:#BAE6FD; --brand-glow:rgba(14,165,233,.2);
+  --bg:#F0F9FF; --surf:#FFFFFF; --surf2:#E0F2FE; --surf3:#F8FAFC;
+  --tx:#0C2D48; --tx2:#0369A1; --tx3:#94A3B8; --txinv:#FFFFFF;
+  --bdr:rgba(14,165,233,.18); --bdr2:rgba(0,0,0,.12);
+  --shd:0 2px 10px rgba(0,0,0,.07); --shd-card:0 3px 16px rgba(0,0,0,.09);
+  --r-sm:8px; --r-md:12px; --r-lg:16px; --r-xl:22px; --pill:999px;
+  --nav-h:64px; --hdr-h:56px;
+  --safe-b:env(safe-area-inset-bottom,10px); --safe-t:env(safe-area-inset-top,0px);
+  --led:#0D1821;
+  --arriving:#EF4444; --soon:#F59E0B; --okay:#22C55E;
+}
+/* ── DARK (NAVY) ───────────────────────────── */
+[data-theme="dark"]{
+  --bg:#070C18; --surf:#0F172A; --surf2:#1E293B; --surf3:#0F172A;
+  --tx:#E0F2FE; --tx2:#7DD3FC; --tx3:#475569; --txinv:#0C2D48;
+  --bdr:rgba(56,189,248,.14); --bdr2:rgba(255,255,255,.1);
+  --shd:0 2px 10px rgba(0,0,0,.4); --shd-card:0 3px 16px rgba(0,0,0,.5);
+  --brand:#38BDF8; --brand-dk:#0EA5E9; --brand-lt:#0C4A6E; --brand-glow:rgba(56,189,248,.2);
+}
+[data-theme="dark"] body{background:#070C18}
+
+/* ── SCREEN SYSTEM ──────────────────────────── */
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;
+  background:var(--bg);overflow:hidden;transition:background .2s}
+.scroll-area{flex:1;overflow-y:auto;min-height:0;-webkit-overflow-scrolling:touch;
+  padding:12px 14px calc(var(--nav-h) + var(--safe-b) + 14px)}
+
+/* ── HEADER ─────────────────────────────────── */
+.app-hdr{display:flex;align-items:center;justify-content:space-between;
+  height:calc(var(--hdr-h) + var(--safe-t));padding:var(--safe-t) 14px 0;
+  background:var(--surf);border-bottom:1px solid var(--bdr);flex-shrink:0}
+.hdr-brand{display:flex;align-items:center;gap:8px}
+.hdr-logo{font-size:24px}
+.hdr-name{font-size:17px;font-weight:800;color:var(--brand);letter-spacing:-.4px}
+.hdr-time{font-size:12px;color:var(--tx3);font-weight:500;margin-top:1px}
+.hdr-actions{display:flex;align-items:center;gap:8px}
+.hdr-btn{width:36px;height:36px;border-radius:50%;background:var(--surf2);
+  display:flex;align-items:center;justify-content:center;font-size:16px;
+  border:1px solid var(--bdr);transition:background .15s}
+.hdr-btn:active{background:var(--brand-lt)}
+
+.sub-hdr{display:flex;align-items:center;height:calc(var(--hdr-h) + var(--safe-t));
+  padding:var(--safe-t) 14px 0;background:var(--surf);border-bottom:1px solid var(--bdr);
+  flex-shrink:0;gap:10px}
+.back-btn{font-size:14px;font-weight:700;color:var(--brand);white-space:nowrap;flex-shrink:0}
+.sub-ttl{flex:1;font-size:16px;font-weight:800;color:var(--tx);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ── BOTTOM NAV ─────────────────────────────── */
+.bottom-nav{position:absolute;bottom:0;left:0;right:0;
+  height:calc(var(--nav-h) + var(--safe-b));padding-bottom:var(--safe-b);
+  background:var(--surf);border-top:1px solid var(--bdr);display:flex;
+  box-shadow:0 -2px 10px rgba(0,0,0,.06);z-index:10}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:3px;color:var(--tx3);padding:6px 0;transition:color .15s}
+.nav-btn.active{color:var(--brand)}
+.nav-icon{font-size:20px;line-height:1}
+.nav-lbl{font-size:10px;font-weight:700;letter-spacing:.2px}
+
+/* ── SHARED FORMS ───────────────────────────── */
+.fld-lbl{font-size:11px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.6px;color:var(--tx3);margin-bottom:4px}
+.fld-inp{width:100%;background:var(--surf);border:1.5px solid var(--bdr2);
+  border-radius:var(--r-md);padding:11px 13px;font-size:14px;color:var(--tx);
+  outline:none;transition:border-color .2s}
+.fld-inp:focus{border-color:var(--brand)}
+.fld-inp::placeholder{color:var(--tx3)}
+select.fld-inp{cursor:pointer}
+
+/* ── BUTTONS ────────────────────────────────── */
+.btn-primary{background:linear-gradient(135deg,var(--brand),var(--brand-dk));
+  color:white;border-radius:var(--pill);padding:12px 22px;font-size:14px;
+  font-weight:700;box-shadow:0 3px 10px var(--brand-glow);transition:transform .1s}
+.btn-primary:active{transform:scale(.97)}
+.btn-primary.full{width:100%;text-align:center}
+.btn-secondary{background:var(--surf2);color:var(--tx);border:1.5px solid var(--bdr2);
+  border-radius:var(--pill);padding:11px 20px;font-size:14px;font-weight:600}
+.btn-secondary:active{opacity:.8}
+.btn-ghost{color:var(--brand);font-size:13px;font-weight:700;padding:6px 0}
+.btn-add{width:100%;background:var(--surf);border:1.5px dashed var(--brand);
+  border-radius:var(--r-md);padding:12px;font-size:14px;font-weight:700;
+  color:var(--brand);transition:background .15s}
+.btn-add:active{background:var(--brand-lt)}
+
+/* ── HOME SCREEN ────────────────────────────── */
+.stop-lookup{display:flex;gap:8px;margin-bottom:14px}
+.stop-lookup .fld-inp{flex:1}
+.stop-lookup-btn{background:var(--brand);color:white;border-radius:var(--r-md);
+  padding:0 16px;font-size:14px;font-weight:700;white-space:nowrap;flex-shrink:0}
+
+.section-hdr{font-size:11px;font-weight:800;text-transform:uppercase;
+  letter-spacing:.8px;color:var(--tx3);margin:14px 0 8px}
+
+.dest-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dest-card{border-radius:var(--r-lg);padding:14px 12px;display:flex;flex-direction:column;
+  gap:5px;cursor:pointer;box-shadow:var(--shd-card);transition:transform .12s;
+  position:relative;overflow:hidden;text-align:left;border:none;min-height:90px}
+.dest-card:active{transform:scale(.96)}
+.card-shine{position:absolute;top:-30%;right:-5%;width:60%;height:60%;
+  background:rgba(255,255,255,.12);border-radius:50%;pointer-events:none}
+.card-emoji{font-size:24px;line-height:1}
+.card-label{font-size:14px;font-weight:800;color:white;line-height:1.2}
+.card-bus{font-size:11px;color:rgba(255,255,255,.7);font-weight:600}
+.card-note{font-size:10px;color:rgba(255,255,255,.6);font-style:italic;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Card gradients (muted ocean palette) */
+.c-home   {background:linear-gradient(140deg,#1D4ED8,#2563EB)}
+.c-work   {background:linear-gradient(140deg,#0E7490,#0EA5E9)}
+.c-gym    {background:linear-gradient(140deg,#047857,#059669)}
+.c-food   {background:linear-gradient(140deg,#B45309,#D97706)}
+.c-0{background:linear-gradient(140deg,#6D28D9,#7C3AED)}
+.c-1{background:linear-gradient(140deg,#BE185D,#DB2777)}
+.c-2{background:linear-gradient(140deg,#065F46,#10B981)}
+.c-3{background:linear-gradient(140deg,#1E40AF,#3B82F6)}
+
+/* Recents row */
+.recents-row{display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;
+  scrollbar-width:none;padding-bottom:2px}
+.recents-row::-webkit-scrollbar{display:none}
+.recent-chip{background:var(--surf);border:1.5px solid var(--bdr);border-radius:var(--pill);
+  padding:7px 13px;font-size:12px;font-weight:700;color:var(--tx2);
+  white-space:nowrap;flex-shrink:0;cursor:pointer;transition:background .15s}
+.recent-chip:active{background:var(--brand-lt)}
+
+/* Fav services */
+.fav-row{display:flex;gap:8px;flex-wrap:wrap}
+.fav-chip{background:var(--led);border-radius:var(--r-sm);padding:8px 14px;
+  color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:6px;
+  transition:opacity .15s}
+.fav-chip:active{opacity:.75}
+.fav-chip-no{font-family:'Courier New',monospace;font-weight:700;font-size:16px;color:white}
+.fav-chip-time{font-size:11px;color:rgba(255,255,255,.55)}
+
+.empty-state{text-align:center;padding:40px 20px;color:var(--tx3)}
+.empty-icon{font-size:40px;margin-bottom:10px}
+.empty-state p{font-size:14px;line-height:1.5}
+
+/* ── ARRIVALS SCREEN ─── LED BOARD ──────────── */
+.stop-info-card{background:var(--surf);border-radius:var(--r-md);padding:12px 14px;
+  display:flex;align-items:center;gap:10px;margin-bottom:14px;box-shadow:var(--shd)}
+.sic-icon{font-size:20px;flex-shrink:0}
+.sic-code{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--tx3)}
+.sic-name{font-size:15px;font-weight:800;color:var(--tx);margin-top:1px}
+.sic-right{margin-left:auto;display:flex;gap:6px;flex-shrink:0}
+.view-toggle{background:var(--surf2);border:1px solid var(--bdr);border-radius:var(--pill);
+  padding:5px 11px;font-size:11px;font-weight:700;color:var(--tx2)}
+
+/* LED arrival cards */
+.arr-list{display:flex;flex-direction:column;gap:8px}
+
+.arr-card{background:var(--led);border-radius:var(--r-md);padding:13px 15px;
+  position:relative;overflow:hidden;cursor:pointer;transition:opacity .15s}
+.arr-card:active{opacity:.82}
+.arr-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--ac,#22C55E)}
+.arr-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.arr-no{font-family:'Courier New',monospace;font-size:32px;font-weight:700;
+  color:white;letter-spacing:-1px;line-height:1}
+.arr-chips{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.arr-chip{font-size:15px;font-weight:800;color:white;border-radius:6px;padding:4px 10px;white-space:nowrap}
+.arr-chip.arriving{background:var(--arriving)}
+.arr-chip.soon{background:var(--soon);color:#1A1A2E}
+.arr-chip.okay{background:var(--okay)}
+.arr-chip.na{background:rgba(255,255,255,.12);color:rgba(255,255,255,.45)}
+.arr-bot{display:flex;align-items:center;justify-content:space-between;margin-top:7px}
+.arr-type{font-size:11px;color:rgba(255,255,255,.38)}
+.arr-next{font-size:10px;color:rgba(255,255,255,.28)}
+.arr-watch-btn{font-size:11px;font-weight:700;color:var(--brand);background:rgba(56,189,248,.12);
+  border-radius:var(--pill);padding:3px 9px;border:none;cursor:pointer;flex-shrink:0}
+
+/* Compact view */
+.arr-card.compact{padding:10px 14px}
+.arr-card.compact .arr-top{align-items:center}
+.arr-card.compact .arr-no{font-size:22px}
+.arr-card.compact .arr-chip{font-size:13px;padding:3px 8px}
+
+/* Watch banner */
+.watch-banner{background:linear-gradient(135deg,#0C4A6E,#0369A1);
+  border-radius:var(--r-md);padding:12px 14px;margin-bottom:10px;
+  display:flex;align-items:center;gap:10px}
+.watch-icon{font-size:18px}
+.watch-text{flex:1;font-size:13px;font-weight:600;color:white;line-height:1.4}
+.watch-cancel{font-size:11px;font-weight:700;color:rgba(255,255,255,.7);
+  background:rgba(255,255,255,.12);border-radius:var(--pill);padding:4px 10px}
+
+.board-btn{width:100%;background:linear-gradient(135deg,#22C55E,#15803D);color:white;
+  border-radius:var(--pill);padding:14px;font-size:16px;font-weight:800;
+  box-shadow:0 3px 14px rgba(34,197,94,.32);margin-top:14px;transition:transform .1s}
+.board-btn:active{transform:scale(.97)}
+.arr-refresh{width:100%;background:var(--surf);border:1px solid var(--bdr);
+  border-radius:var(--r-md);padding:11px;font-size:13px;font-weight:600;
+  color:var(--tx2);margin-top:8px}
+.arr-loading{text-align:center;padding:40px 20px;color:var(--tx3);font-size:14px;line-height:1.7}
+
+/* ── JOURNEY SCREEN ─────────────────────────── */
+.j-hdr{background:linear-gradient(135deg,var(--brand),var(--brand-dk));
+  padding:calc(var(--safe-t)+14px) 14px 14px;
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.j-info{display:flex;align-items:center;gap:10px}
+.j-icon{font-size:28px}
+.j-busno{font-family:'Courier New',monospace;font-size:24px;font-weight:700;color:white;letter-spacing:-1px}
+.j-lbl{font-size:12px;color:rgba(255,255,255,.8);font-weight:600;margin-top:1px}
+
+.stop-counter{background:var(--surf);border-radius:var(--r-lg);padding:20px;
+  margin-bottom:12px;display:flex;flex-direction:column;align-items:center;gap:14px;
+  box-shadow:var(--shd-card)}
+.stop-dots{display:flex;align-items:center;width:100%;justify-content:center}
+.s-dot{width:14px;height:14px;border-radius:50%;background:var(--bdr2);flex-shrink:0;transition:all .3s}
+.s-dot.passed{background:var(--brand)}
+.s-dot.here{background:var(--okay);transform:scale(1.5);box-shadow:0 0 0 4px rgba(34,197,94,.2)}
+.s-line{flex:1;height:2px;background:var(--bdr2);max-width:24px;transition:background .3s}
+.s-line.passed{background:var(--brand)}
+.count-big{font-size:48px;font-weight:900;color:var(--tx);letter-spacing:-3px;line-height:1}
+.count-lbl{font-size:14px;font-weight:600;color:var(--tx3)}
+
+.j-stop{background:var(--surf);border-radius:var(--r-md);padding:12px 14px;
+  margin-bottom:8px;box-shadow:var(--shd)}
+.j-stop.next-stop{border-left:3px solid var(--okay)}
+.j-stop.dest-stop{border-left:3px solid var(--brand)}
+.j-stop-lbl{font-size:10px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.7px;color:var(--tx3);margin-bottom:2px}
+.j-stop-name{font-size:15px;font-weight:800;color:var(--tx)}
+.j-stop-note{font-size:12px;color:var(--tx2);margin-top:2px;font-style:italic}
+
+.j-alert{background:var(--surf);border-radius:var(--r-md);padding:12px 14px;
+  margin-bottom:8px;display:flex;align-items:center;gap:10px;
+  border:1.5px solid var(--soon)}
+.j-alert.urgent{border-color:var(--arriving);background:rgba(239,68,68,.06)}
+.j-alert-icon{font-size:22px;flex-shrink:0}
+.j-alert-text{font-size:14px;font-weight:800;color:var(--tx)}
+
+.btn-tap{width:100%;background:var(--surf);border:1.5px solid var(--bdr2);
+  border-radius:var(--r-md);padding:14px;font-size:14px;font-weight:700;
+  color:var(--tx);margin-bottom:8px}
+.btn-tap:active{background:var(--surf2)}
+.j-footer{padding:10px 14px calc(10px + var(--safe-b));flex-shrink:0;
+  background:var(--bg);border-top:1px solid var(--bdr)}
+
+/* ── NEARBY SCREEN ──────────────────────────── */
+.gps-banner{background:linear-gradient(135deg,var(--brand),var(--brand-dk));
+  border-radius:var(--r-md);padding:16px;text-align:center;margin-bottom:14px}
+.gps-icon{font-size:32px;margin-bottom:8px}
+.gps-title{font-size:15px;font-weight:800;color:white;margin-bottom:6px}
+.gps-sub{font-size:13px;color:rgba(255,255,255,.8);margin-bottom:12px;line-height:1.4}
+.gps-btn{background:rgba(255,255,255,.22);color:white;border:2px solid rgba(255,255,255,.4);
+  border-radius:var(--pill);padding:10px 22px;font-size:14px;font-weight:700}
+
+.nearby-list{display:flex;flex-direction:column;gap:8px}
+.nearby-item{background:var(--surf);border-radius:var(--r-md);padding:12px 14px;
+  display:flex;align-items:center;gap:12px;cursor:pointer;
+  border:1px solid var(--bdr);box-shadow:var(--shd);transition:background .15s}
+.nearby-item:active{background:var(--surf2)}
+.ni-dist{min-width:52px;text-align:center;flex-shrink:0}
+.ni-dist-val{font-size:14px;font-weight:800;color:var(--brand)}
+.ni-dist-unit{font-size:10px;color:var(--tx3);font-weight:600}
+.ni-info{flex:1}
+.ni-code{font-family:'Courier New',monospace;font-size:12px;font-weight:700;color:var(--tx3)}
+.ni-name{font-size:14px;font-weight:700;color:var(--tx);margin-top:1px}
+.ni-arrow{font-size:16px;color:var(--tx3)}
+
+/* ── AI SCREEN ──────────────────────────────── */
+#screen-ai{display:flex;flex-direction:column}
+.chat-area{flex:1;overflow-y:auto;min-height:0;-webkit-overflow-scrolling:touch;
+  padding:14px;display:flex;flex-direction:column;gap:10px}
+.chat-msg{max-width:80%;padding:10px 14px;border-radius:var(--r-lg);
+  font-size:14px;line-height:1.5;font-weight:500}
+.chat-msg.ai{background:var(--surf);color:var(--tx);align-self:flex-start;
+  border-bottom-left-radius:4px;box-shadow:var(--shd)}
+.chat-msg.user{background:linear-gradient(135deg,var(--brand),var(--brand-dk));
+  color:white;align-self:flex-end;border-bottom-right-radius:4px}
+.chat-thinking{align-self:flex-start;background:var(--surf);border-radius:var(--r-lg);
+  border-bottom-left-radius:4px;padding:12px 16px;box-shadow:var(--shd)}
+.dot-flash{display:flex;gap:4px;align-items:center}
+.dot-flash span{width:6px;height:6px;border-radius:50%;background:var(--tx3);
+  animation:blink 1.2s infinite both}
+.dot-flash span:nth-child(2){animation-delay:.2s}
+.dot-flash span:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,80%,100%{opacity:.2}40%{opacity:1}}
+.chat-opts{padding:6px 14px 10px;display:flex;flex-direction:column;gap:7px;flex-shrink:0}
+.chat-opt{background:var(--surf);border:1.5px solid var(--brand);border-radius:var(--pill);
+  padding:11px 18px;font-size:14px;font-weight:700;color:var(--brand);
+  text-align:center;transition:all .15s}
+.chat-opt:active{background:var(--brand);color:white}
+.chat-input-row{display:flex;gap:8px;padding:8px 14px calc(8px + var(--safe-b));
+  border-top:1px solid var(--bdr);background:var(--surf);flex-shrink:0}
+.chat-inp{flex:1;background:var(--surf2);border:1.5px solid var(--bdr2);
+  border-radius:var(--pill);padding:10px 15px;font-size:14px;color:var(--tx);outline:none}
+.chat-inp:focus{border-color:var(--brand)}
+.chat-send{background:var(--brand);color:white;border-radius:var(--pill);
+  padding:10px 16px;font-size:14px;font-weight:700;flex-shrink:0}
+.no-key-banner{background:var(--surf);border:1.5px solid var(--bdr);border-radius:var(--r-md);
+  padding:20px;text-align:center;margin:20px 14px}
+.no-key-icon{font-size:32px;margin-bottom:8px}
+.no-key-title{font-size:15px;font-weight:800;color:var(--tx);margin-bottom:6px}
+.no-key-sub{font-size:13px;color:var(--tx2);line-height:1.5;margin-bottom:12px}
+
+/* ── STATS SCREEN ───────────────────────────── */
+.stats-cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px}
+.stat-card{background:var(--surf);border-radius:var(--r-md);padding:12px 10px;
+  text-align:center;border:1px solid var(--bdr);box-shadow:var(--shd)}
+.stat-val{font-size:24px;font-weight:900;color:var(--brand);letter-spacing:-1px}
+.stat-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;
+  color:var(--tx3);margin-top:2px}
+
+.top-list{background:var(--surf);border-radius:var(--r-md);border:1px solid var(--bdr);
+  overflow:hidden;margin-bottom:14px}
+.top-item{display:flex;align-items:center;gap:12px;padding:12px 14px;
+  border-bottom:1px solid var(--bdr)}
+.top-item:last-child{border-bottom:none}
+.top-rank{font-size:16px;font-weight:900;color:var(--tx3);min-width:20px}
+.top-info{flex:1}
+.top-val{font-family:'Courier New',monospace;font-size:15px;font-weight:700;color:var(--tx)}
+.top-sub{font-size:11px;color:var(--tx3);margin-top:1px}
+.top-bar-wrap{width:60px}
+.top-bar{height:5px;background:var(--brand);border-radius:var(--pill);transition:width .5s}
+
+.journey-history{display:flex;flex-direction:column;gap:6px}
+.journey-row{background:var(--surf);border-radius:var(--r-md);padding:11px 13px;
+  display:flex;align-items:center;gap:10px;border:1px solid var(--bdr)}
+.jr-bus{font-family:'Courier New',monospace;font-size:14px;font-weight:700;
+  color:white;background:var(--led);border-radius:6px;padding:4px 8px;
+  flex-shrink:0;min-width:52px;text-align:center}
+.jr-info{flex:1}
+.jr-route{font-size:13px;font-weight:700;color:var(--tx)}
+.jr-meta{font-size:11px;color:var(--tx3);margin-top:1px}
+.jr-wait{font-size:12px;font-weight:600;color:var(--tx2);flex-shrink:0}
+
+/* ── SETTINGS SCREEN ────────────────────────── */
+.settings-section{background:var(--surf);border-radius:var(--r-md);
+  border:1px solid var(--bdr);overflow:hidden;margin-bottom:14px}
+.settings-section-title{font-size:11px;font-weight:800;text-transform:uppercase;
+  letter-spacing:.7px;color:var(--tx3);padding:10px 14px 0}
+.settings-row{display:flex;align-items:center;gap:12px;padding:12px 14px;
+  border-bottom:1px solid var(--bdr)}
+.settings-row:last-child{border-bottom:none}
+.settings-row-icon{font-size:18px;flex-shrink:0;width:24px;text-align:center}
+.settings-row-info{flex:1}
+.settings-row-label{font-size:14px;font-weight:700;color:var(--tx)}
+.settings-row-sub{font-size:12px;color:var(--tx3);margin-top:1px}
+.settings-row-action{flex-shrink:0}
+
+/* Theme toggle */
+.theme-toggle{display:flex;background:var(--surf2);border-radius:var(--pill);
+  padding:3px;gap:2px;border:1px solid var(--bdr)}
+.theme-opt{padding:6px 14px;border-radius:var(--pill);font-size:12px;font-weight:700;
+  color:var(--tx3);cursor:pointer;transition:all .2s}
+.theme-opt.active{background:var(--brand);color:white}
+
+/* Destination items in settings */
+.dest-setting-item{display:flex;align-items:center;gap:10px;padding:11px 14px;
+  border-bottom:1px solid var(--bdr)}
+.dest-setting-item:last-child{border-bottom:none}
+.dsi-emoji{font-size:22px;flex-shrink:0}
+.dsi-info{flex:1}
+.dsi-label{font-size:14px;font-weight:700;color:var(--tx)}
+.dsi-sub{font-size:11px;color:var(--tx3);margin-top:1px}
+.dsi-btns{display:flex;gap:6px}
+.dsi-btn{width:30px;height:30px;border-radius:50%;background:var(--surf2);
+  border:1px solid var(--bdr2);font-size:12px;
+  display:flex;align-items:center;justify-content:center}
+
+/* ── MODAL ──────────────────────────────────── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);
+  display:flex;align-items:flex-end;z-index:50}
+.modal-sheet{width:100%;background:var(--surf);border-radius:var(--r-xl) var(--r-xl) 0 0;
+  padding:20px 16px calc(20px + var(--safe-b));max-height:88vh;overflow-y:auto;
+  display:flex;flex-direction:column;gap:12px}
+.modal-title{font-size:18px;font-weight:800;color:var(--tx)}
+.modal-row{display:flex;gap:10px}
+.modal-row .btn-primary{flex:1;text-align:center}
+.modal-row .btn-secondary{flex:1;text-align:center}
+
+/* ── TOAST ──────────────────────────────────── */
+.toast{position:fixed;bottom:calc(var(--nav-h) + var(--safe-b) + 12px);left:50%;
+  transform:translateX(-50%) translateY(12px);background:rgba(12,45,72,.93);
+  color:white;padding:10px 18px;border-radius:var(--pill);font-size:13px;font-weight:600;
+  z-index:200;pointer-events:none;opacity:0;transition:opacity .2s,transform .2s;
+  white-space:nowrap;backdrop-filter:blur(8px);max-width:88vw}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+[data-theme="dark"] .toast{background:rgba(56,189,248,.18);border:1px solid rgba(56,189,248,.3)}
+
+/* ── SCAN OVERLAY ───────────────────────────── */
+.scan-ov{position:fixed;inset:0;background:rgba(0,0,0,.88);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  z-index:100;padding:32px;gap:16px}
+.scan-icon{font-size:80px}
+.scan-title{font-size:24px;font-weight:900;color:white;text-align:center}
+.scan-sub{font-size:14px;color:rgba(255,255,255,.7);text-align:center;line-height:1.5}
+.scan-board-btn{background:linear-gradient(135deg,#22C55E,#15803D);color:white;
+  border-radius:var(--pill);padding:14px 28px;font-size:15px;font-weight:800}
+.scan-close{background:rgba(255,255,255,.14);color:white;border:1.5px solid rgba(255,255,255,.25);
+  border-radius:var(--pill);padding:11px 24px;font-size:14px;font-weight:700}
+
+/* ── SETTINGS FOOTER ────────────────────────── */
+.settings-footer{padding:10px 14px calc(10px + var(--safe-b));flex-shrink:0;
+  background:var(--bg);border-top:1px solid var(--bdr)}
+</style>
+</head>
+<body>
+
+<!-- ═══ HOME SCREEN ═══════════════════════════ -->
+<div id="screen-home" class="screen">
+  <header class="app-hdr">
+    <div class="hdr-brand">
+      <span class="hdr-logo">🚌</span>
+      <div>
+        <div class="hdr-name">BusyBus</div>
+        <div class="hdr-time" id="home-time">10:15 AM</div>
+      </div>
+    </div>
+    <div class="hdr-actions">
+      <button class="hdr-btn" id="theme-btn" onclick="App.toggleTheme()" title="Toggle theme">☀️</button>
+      <button class="hdr-btn" onclick="App.scanBus()" title="Scan bus">📸</button>
+    </div>
+  </header>
+  <div class="scroll-area">
+    <div class="stop-lookup">
+      <input type="text" id="stop-code-inp" class="fld-inp" placeholder="Stop code (e.g. 83139)"
+        maxlength="5" inputmode="numeric" onkeydown="if(event.key==='Enter')App.lookupStop()">
+      <button class="stop-lookup-btn" onclick="App.lookupStop()">Go</button>
+    </div>
+    <div class="section-hdr" id="dest-section-hdr">Your Destinations</div>
+    <div class="dest-grid" id="dest-grid"></div>
+    <div class="empty-state hidden" id="dest-empty">
+      <div class="empty-icon">🗺️</div>
+      <p>No destinations saved yet.<br>Add them in ⚙️ Settings.</p>
+    </div>
+    <div id="recents-section" class="hidden">
+      <div class="section-hdr">Recent Stops</div>
+      <div class="recents-row" id="recents-row"></div>
+    </div>
+    <div id="favs-section" class="hidden">
+      <div class="section-hdr">Favourite Services</div>
+      <div class="fav-row" id="fav-row"></div>
+    </div>
+  </div>
+  <nav class="bottom-nav">
+    <button class="nav-btn active" id="nav-home" onclick="App.go('home')">
+      <span class="nav-icon">🏠</span><span class="nav-lbl">Home</span>
+    </button>
+    <button class="nav-btn" id="nav-nearby" onclick="App.go('nearby')">
+      <span class="nav-icon">📍</span><span class="nav-lbl">Nearby</span>
+    </button>
+    <button class="nav-btn" id="nav-ai" onclick="App.go('ai')">
+      <span class="nav-icon">🤖</span><span class="nav-lbl">AI</span>
+    </button>
+    <button class="nav-btn" id="nav-stats" onclick="App.go('stats')">
+      <span class="nav-icon">📊</span><span class="nav-lbl">Stats</span>
+    </button>
+    <button class="nav-btn" id="nav-settings" onclick="App.go('settings')">
+      <span class="nav-icon">⚙️</span><span class="nav-lbl">Settings</span>
+    </button>
+  </nav>
+</div>
+
+<!-- ═══ ARRIVALS SCREEN ════════════════════════ -->
+<div id="screen-arrivals" class="screen hidden">
+  <header class="sub-hdr">
+    <button class="back-btn" id="arr-back-btn" onclick="App.goBack()">← Back</button>
+    <h2 class="sub-ttl" id="arr-title">Bus Arrivals</h2>
+    <button class="hdr-btn" onclick="App.scanBus()">📸</button>
+  </header>
+  <div class="scroll-area" id="arr-scroll">
+    <div class="stop-info-card">
+      <span class="sic-icon">🚏</span>
+      <div>
+        <div class="sic-code" id="arr-stop-code">83139</div>
+        <div class="sic-name" id="arr-stop-name">Loading...</div>
+      </div>
+      <div class="sic-right">
+        <button class="view-toggle" id="view-toggle-btn" onclick="Arrivals.toggleView()">☰ Compact</button>
+        <button class="arr-refresh hdr-btn" onclick="Arrivals.refresh()">🔄</button>
+      </div>
+    </div>
+    <div class="watch-banner hidden" id="watch-banner">
+      <span class="watch-icon">👁</span>
+      <span class="watch-text" id="watch-text">Watching Bus 74 — alert at &lt; 3 min</span>
+      <button class="watch-cancel" onclick="WatchBus.stop()">Cancel</button>
+    </div>
+    <div class="arr-list" id="arr-list">
+      <div class="arr-loading">Loading arrivals... 🔄</div>
+    </div>
+  </div>
+  <input type="file" id="cam-input" accept="image/*" capture="environment" style="display:none">
+</div>
+
+<!-- ═══ JOURNEY SCREEN ═════════════════════════ -->
+<div id="screen-journey" class="screen hidden">
+  <header class="j-hdr">
+    <div class="j-info">
+      <span class="j-icon">🚌</span>
+      <div>
+        <div class="j-busno" id="j-bus-no">74</div>
+        <div class="j-lbl" id="j-dest-lbl">En route</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="hdr-btn" style="background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.3)" onclick="App.scanBus()">📸</button>
+    </div>
+  </header>
+  <div class="scroll-area" id="j-scroll" style="padding-bottom:80px">
+    <div class="stop-counter">
+      <div class="stop-dots" id="j-dots"></div>
+      <div style="display:flex;flex-direction:column;align-items:center">
+        <div class="count-big" id="j-count">5</div>
+        <div class="count-lbl">stops to go</div>
+      </div>
+    </div>
+    <div class="j-stop next-stop">
+      <div class="j-stop-lbl">Next stop</div>
+      <div class="j-stop-name" id="j-next-stop">—</div>
+    </div>
+    <div class="j-stop dest-stop">
+      <div class="j-stop-lbl">Getting off at</div>
+      <div class="j-stop-name" id="j-off-stop">—</div>
+      <div class="j-stop-note" id="j-off-note"></div>
+    </div>
+    <div class="j-alert hidden" id="j-alert">
+      <span class="j-alert-icon">🔔</span>
+      <span class="j-alert-text" id="j-alert-text">Almost there!</span>
+    </div>
+    <button class="btn-tap" onclick="Journey.tapStop()">📍 Just passed a stop</button>
+    <button class="btn-secondary" style="width:100%" onclick="Journey.end()">End journey</button>
+  </div>
+  <div class="j-footer">
+    <div style="font-size:12px;color:var(--tx3);text-align:center" id="j-elapsed"></div>
+  </div>
+</div>
+
+<!-- ═══ NEARBY SCREEN ══════════════════════════ -->
+<div id="screen-nearby" class="screen hidden">
+  <header class="app-hdr">
+    <div class="hdr-brand">
+      <span class="hdr-logo">📍</span>
+      <div><div class="hdr-name">Nearby Stops</div></div>
+    </div>
+    <button class="hdr-btn" onclick="Nearby.refresh()">🔄</button>
+  </header>
+  <div class="scroll-area">
+    <div id="nearby-gps-prompt">
+      <div class="gps-banner">
+        <div class="gps-icon">📡</div>
+        <div class="gps-title">Find stops near you</div>
+        <div class="gps-sub">BusyBus will use your GPS location to find the nearest bus stops.</div>
+        <button class="gps-btn" onclick="Nearby.locate()">Enable Location</button>
+      </div>
+    </div>
+    <div class="nearby-list hidden" id="nearby-list"></div>
+    <div class="arr-loading hidden" id="nearby-loading">Finding nearby stops... 📡</div>
+    <div class="arr-loading hidden" id="nearby-error">Could not get location.<br>Check GPS permissions and try again.</div>
+  </div>
+  <nav class="bottom-nav">
+    <button class="nav-btn" onclick="App.go('home')">
+      <span class="nav-icon">🏠</span><span class="nav-lbl">Home</span>
+    </button>
+    <button class="nav-btn active" onclick="App.go('nearby')">
+      <span class="nav-icon">📍</span><span class="nav-lbl">Nearby</span>
+    </button>
+    <button class="nav-btn" onclick="App.go('ai')">
+      <span class="nav-icon">🤖</span><span class="nav-lbl">AI</span>
+    </button>
+    <button class="nav-btn" onclick="App.go('stats')">
+      <span class="nav-icon">📊</span><span class="nav-lbl">Stats</span>
+    </button>
+    <button class="nav-btn" onclick="App.go('settings')">
+      <span class="nav-icon">⚙️</span><span class="nav-lbl">Settings</span>
+    </button>
+  </nav>
+</div>
+
+<!-- ═══ AI SCREEN ══════════════════════════════ -->
+<div id="screen-ai" class="screen hidden">
+  <header class="sub-hdr">
+    <button class="back-btn" onclick="App.go('home')">← Back</button>
+    <h2 class="sub-ttl">🤖 AI Assistant</h2>
+    <button class="hdr-btn" onclick="AIChat.clear()">✕</button>
+  </header>
+  <div class="no-key-banner hidden" id="ai-no-key">
+    <div class="no-key-icon">🔑</div>
+    <div class="no-key-title">Gemini API Key Required</div>
+    <div class="no-key-sub">Add your free Google AI Studio key in Settings to use the AI assistant.</div>
+    <button class="btn-primary" onclick="App.go('settings')">Go to Settings</button>
+  </div>
+  <div class="chat-area" id="chat-area"></div>
+  <div class="chat-opts" id="chat-opts"></div>
+  <div class="chat-input-row">
+    <input type="text" id="chat-inp" class="chat-inp" placeholder="Ask anything about buses...">
+    <button class="chat-send" onclick="AIChat.send()">Send</button>
+  </div>
+</div>
+
+<!-- ═══ STATS SCREEN ═══════════════════════════ -->
+<div id="screen-stats" class="screen hidden">
+  <header class="app-hdr">
+    <div class="hdr-brand">
+      <span class="hdr-logo">📊</span>
+      <div><div class="hdr-name">Commute Stats</div></div>
+    </div>
+    <button class="hdr-btn" onclick="Stats.clearConfirm()" title="Clear history">🗑️</button>
+  </header>
+  <div class="scroll-area">
+    <div class="stats-cards" id="stats-cards"></div>
+    <div class="section-hdr">Most Used Buses</div>
+    <div class="top-list" id="top-buses"></div>
+    <div class="section-hdr">Most Visited Stops</div>
+    <div class="top-list" id="top-stops"></div>
+    <div class="section-hdr">Journey History</div>
+    <div class="journey-history" id="journey-history"></div>
+    <div class="arr-loading hidden" id="stats-empty">
+      <div style="font-size:32px;margin-bottom:8px">🚌</div>
+      No journeys recorded yet.<br>Complete a journey to see stats.
+    </div>
+  </div>
+  <nav class="bottom-nav">
+    <button class="nav-btn" onclick="App.go('home')">
+      <span class="nav-icon">🏠</span><span class="nav-lbl">Home</span>
+    </button>
+    <button class="nav-btn" onclick="App.go('nearby')">
+      <span class="nav-icon">📍</span><span class="nav-lbl">Nearby</span>
+    </button>
+    <button class="nav-btn" onclick="App.go('ai')">
+      <span class="nav-icon">🤖</span><span class="nav-lbl">AI</span>
+    </button>
+    <button class="nav-btn active" onclick="App.go('stats')">
+      <span class="nav-icon">📊</span><span class="nav-lbl">Stats</span>
+    </button>
+    <button class="nav-btn" onclick="App.go('settings')">
+      <span class="nav-icon">⚙️</span><span class="nav-lbl">Settings</span>
+    </button>
+  </nav>
+</div>
+
+<!-- ═══ SETTINGS SCREEN ════════════════════════ -->
+<div id="screen-settings" class="screen hidden">
+  <header class="app-hdr">
+    <div class="hdr-brand">
+      <span class="hdr-logo">⚙️</span>
+      <div><div class="hdr-name">Settings</div></div>
+    </div>
+  </header>
+  <div class="scroll-area" id="settings-scroll" style="padding-bottom:24px">
+
+    <!-- Destinations -->
+    <div class="section-hdr">Destinations</div>
+    <div class="settings-section">
+      <div id="dest-settings-list"></div>
+      <div style="padding:10px 14px">
+        <button class="btn-add" onclick="DestModal.open()">+ Add Destination</button>
+      </div>
+    </div>
+
+    <!-- Display -->
+    <div class="section-hdr">Display</div>
+    <div class="settings-section">
+      <div class="settings-row">
+        <span class="settings-row-icon">🎨</span>
+        <div class="settings-row-info">
+          <div class="settings-row-label">Theme</div>
+        </div>
+        <div class="settings-row-action">
+          <div class="theme-toggle" id="theme-toggle">
+            <button class="theme-opt active" data-t="light" onclick="App.setTheme('light')">☀️ Ocean</button>
+            <button class="theme-opt" data-t="dark" onclick="App.setTheme('dark')">🌙 Navy</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI -->
+    <div class="section-hdr">AI Assistant</div>
+    <div class="settings-section">
+      <div style="padding:12px 14px;display:flex;flex-direction:column;gap:10px">
+        <div>
+          <div class="fld-lbl">Google Gemini API Key</div>
+          <input type="password" id="ai-key-inp" class="fld-inp" placeholder="Paste your Gemini key here">
+          <a href="https://aistudio.google.com/apikey" target="_blank"
+            style="font-size:12px;font-weight:600;color:var(--brand);display:block;margin-top:4px">
+            Get a free key at Google AI Studio →</a>
+        </div>
+        <div>
+          <div class="fld-lbl">Model</div>
+          <select id="ai-model-sel" class="fld-inp">
+            <option value="gemini-2.5-flash">gemini-2.5-flash (latest)</option>
+            <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite</option>
+            <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+            <option value="gemini-2.0-flash-lite">gemini-2.0-flash-lite</option>
+            <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+            <option value="gemini-1.5-flash-latest">gemini-1.5-flash-latest</option>
+            <option value="gemini-1.5-pro">gemini-1.5-pro</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Watch Bus -->
+    <div class="section-hdr">Watch Bus Notifications</div>
+    <div class="settings-section">
+      <div class="settings-row">
+        <span class="settings-row-icon">🔔</span>
+        <div class="settings-row-info">
+          <div class="settings-row-label">Alert when bus is within</div>
+        </div>
+        <div class="settings-row-action">
+          <select id="watch-thresh-sel" class="fld-inp" style="padding:6px 10px;font-size:13px;width:auto">
+            <option value="2">2 min</option>
+            <option value="3" selected>3 min</option>
+            <option value="5">5 min</option>
+            <option value="8">8 min</option>
+          </select>
+        </div>
+      </div>
+      <div class="settings-row">
+        <span class="settings-row-icon">📱</span>
+        <div class="settings-row-info">
+          <div class="settings-row-label">Notification permission</div>
+          <div class="settings-row-sub" id="notif-status">Checking...</div>
+        </div>
+        <div class="settings-row-action">
+          <button class="btn-ghost hidden" id="notif-req-btn" onclick="Settings.requestNotifPermission()">
+            Enable
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Favourite Services -->
+    <div class="section-hdr">Favourite Services</div>
+    <div class="settings-section">
+      <div style="padding:12px 14px;display:flex;flex-direction:column;gap:10px">
+        <div class="fld-lbl">Bus numbers (comma-separated)</div>
+        <input type="text" id="fav-services-inp" class="fld-inp" placeholder="e.g. 74, 65, NR5">
+        <div class="fld-lbl">Show on home screen near which stop?</div>
+        <input type="text" id="fav-stop-inp" class="fld-inp" placeholder="Stop code (e.g. 83139)" maxlength="5" inputmode="numeric">
+      </div>
+    </div>
+
+    <!-- Data -->
+    <div class="section-hdr">Data</div>
+    <div class="settings-section">
+      <div class="settings-row" style="cursor:pointer" onclick="Settings.clearRecents()">
+        <span class="settings-row-icon">🧹</span>
+        <div class="settings-row-info">
+          <div class="settings-row-label">Clear recent stops</div>
+        </div>
+        <span style="color:var(--tx3)">›</span>
+      </div>
+      <div class="settings-row" style="cursor:pointer" onclick="Stats.clearConfirm()">
+        <span class="settings-row-icon">🗑️</span>
+        <div class="settings-row-info">
+          <div class="settings-row-label">Clear journey history</div>
+        </div>
+        <span style="color:var(--tx3)">›</span>
+      </div>
+    </div>
+
+    <!-- About -->
+    <div class="section-hdr">About</div>
+    <div class="settings-section">
+      <div class="settings-row">
+        <span class="settings-row-icon">🚌</span>
+        <div class="settings-row-info">
+          <div class="settings-row-label">BusyBus v1.0</div>
+          <div class="settings-row-sub">Bus data: arrivelah2.busrouter.sg</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="settings-footer">
+    <button class="btn-primary full" onclick="Settings.save()">Save Settings</button>
+  </div>
+  <nav class="bottom-nav">
+    <button class="nav-btn" onclick="App.go('home')">
+      <span class="nav-icon">🏠</span><span class="nav-lbl">Home</span>
+    </button>
+    <button class="nav-btn" onclick="App.go('nearby')">
+      <span class="nav-icon">📍</span><span class="nav-lbl">Nearby</span>
+    </button>
+    <button class="nav-btn" onclick="App.go('ai')">
+      <span class="nav-icon">🤖</span><span class="nav-lbl">AI</span>
+    </button>
+    <button class="nav-btn" onclick="App.go('stats')">
+      <span class="nav-icon">📊</span><span class="nav-lbl">Stats</span>
+    </button>
+    <button class="nav-btn active" onclick="App.go('settings')">
+      <span class="nav-icon">⚙️</span><span class="nav-lbl">Settings</span>
+    </button>
+  </nav>
+</div>
+
+<!-- Destination modal -->
+<div class="modal-bg hidden" id="dest-modal">
+  <div class="modal-sheet">
+    <div class="modal-title" id="dest-modal-title">Add Destination</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div>
+        <div class="fld-lbl">Label</div>
+        <input type="text" id="dm-label" class="fld-inp" placeholder="e.g. Work">
+      </div>
+      <div>
+        <div class="fld-lbl">Emoji</div>
+        <input type="text" id="dm-emoji" class="fld-inp" placeholder="💼" maxlength="2">
+      </div>
+    </div>
+    <div>
+      <div class="fld-lbl">Bus Stop Code</div>
+      <input type="text" id="dm-code" class="fld-inp" placeholder="5-digit code e.g. 83139" maxlength="5" inputmode="numeric">
+    </div>
+    <div>
+      <div class="fld-lbl">Bus Stop Name (shown on card)</div>
+      <input type="text" id="dm-stop-name" class="fld-inp" placeholder="e.g. Blk 416 Bedok North Ave 4">
+    </div>
+    <div>
+      <div class="fld-lbl">Bus numbers (comma-separated)</div>
+      <input type="text" id="dm-buses" class="fld-inp" placeholder="e.g. 74, 65">
+    </div>
+    <div>
+      <div class="fld-lbl">Stops to destination</div>
+      <input type="number" id="dm-stops" class="fld-inp" placeholder="e.g. 7" min="1" max="99">
+    </div>
+    <div>
+      <div class="fld-lbl">Personal note (optional)</div>
+      <input type="text" id="dm-note" class="fld-inp" placeholder="e.g. Exit B, walk 3 min to lamp post">
+    </div>
+    <div class="modal-row">
+      <button class="btn-secondary" onclick="DestModal.close()">Cancel</button>
+      <button class="btn-primary" onclick="DestModal.save()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── SERVICE WORKER — first line ──────────────
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
+
+// ── DATE HELPERS (AAR: never toISOString for display) ──
+function localDateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function today() { return localDateStr(new Date()); }
+
+// ── CONSTANTS ────────────────────────────────
+const P = 'bb2_';
+const DEST_COLORS = ['c-home','c-work','c-gym','c-food','c-0','c-1','c-2','c-3'];
+const EMOJI_MAP = { 'Home':'🏠','Work':'💼','Office':'💼','Gym':'🏋️','Food':'🍜',
+  'School':'🏫','Hospital':'🏥','Market':'🛒','Mall':'🏬','Park':'🌳' };
+
+function mockArrivals(stopCode, services) {
+  const now = Date.now();
+  const buses = services.length ? services : ['74','65','NR5'];
+  return buses.map((svc, i) => ({
+    ServiceNo: svc,
+    NextBus:  { EstimatedArrival: new Date(now+(2+i*3)*60000).toISOString(), Type:i%2?'SD':'DD', Load:'SEA' },
+    NextBus2: { EstimatedArrival: new Date(now+(12+i*3)*60000).toISOString(), Type:i%2?'SD':'DD', Load:'SEA' },
+    NextBus3: { EstimatedArrival: new Date(now+(22+i*3)*60000).toISOString(), Type:i%2?'SD':'DD', Load:'SEA' },
+  }));
+}
+
+// ── IDB ──────────────────────────────────────
+let _db = null;
+async function initIDB() {
+  return new Promise((res, rej) => {
+    const req = indexedDB.open('busybus', 1);
+    req.onupgradeneeded = e => {
+      const d = e.target.result;
+      if (!d.objectStoreNames.contains('arr_cache'))   d.createObjectStore('arr_cache',  { keyPath:'key' });
+      if (!d.objectStoreNames.contains('stops_cache')) d.createObjectStore('stops_cache',{ keyPath:'key' });
+      if (!d.objectStoreNames.contains('journeys'))    d.createObjectStore('journeys',   { keyPath:'id' });
+    };
+    req.onsuccess = e => { _db = e.target.result; res(); };
+    req.onerror   = () => rej(req.error);
+  });
+}
+async function idbGet(store, key) {
+  if (!_db) return null;
+  return new Promise(r => {
+    const req = _db.transaction(store,'readonly').objectStore(store).get(key);
+    req.onsuccess = () => r(req.result || null);
+    req.onerror   = () => r(null);
+  });
+}
+async function idbPut(store, obj) {
+  if (!_db) return;
+  return new Promise(r => {
+    const tx = _db.transaction(store,'readwrite');
+    tx.objectStore(store).put(obj);
+    tx.oncomplete = () => r();
+    tx.onerror    = () => r();
+  });
+}
+async function idbGetAll(store) {
+  if (!_db) return [];
+  return new Promise(r => {
+    const req = _db.transaction(store,'readonly').objectStore(store).getAll();
+    req.onsuccess = () => r(req.result || []);
+    req.onerror   = () => r([]);
+  });
+}
+async function idbDelete(store, key) {
+  if (!_db) return;
+  return new Promise(r => {
+    const tx = _db.transaction(store,'readwrite');
+    tx.objectStore(store).delete(key);
+    tx.oncomplete = () => r();
+    tx.onerror    = () => r();
+  });
+}
+async function idbClear(store) {
+  if (!_db) return;
+  return new Promise(r => {
+    const tx = _db.transaction(store,'readwrite');
+    tx.objectStore(store).clear();
+    tx.oncomplete = () => r();
+    tx.onerror    = () => r();
+  });
+}
+
+// ── STORE (localStorage) ─────────────────────
+const Store = {
+  get:  k => { try { return JSON.parse(localStorage.getItem(P+k)); } catch { return null; } },
+  set:  (k,v) => localStorage.setItem(P+k, JSON.stringify(v)),
+  cfg:  ()    => Store.get('cfg') || {},
+  setCfg: o   => Store.set('cfg', { ...Store.cfg(), ...o }),
+  dests: ()   => Store.get('dests') || [],
+  setDests: d => Store.set('dests', d),
+  recents: () => Store.get('recents') || [],
+  setRecents: r => Store.set('recents', r),
+  favServices: () => Store.get('favServices') || [],
+  setFavServices: f => Store.set('favServices', f),
+  favStop: () => Store.get('favStop') || '',
+  setFavStop: s => Store.set('favStop', s),
+};
+
+// ── API ──────────────────────────────────────
+const API = {
+  async arrivals(stopCode, services = []) {
+    const cacheKey = `arr_${stopCode}`;
+    const cached = await idbGet('arr_cache', cacheKey);
+    if (cached && Date.now() - cached.ts < 60000) {
+      const data = cached.data;
+      return services.length ? data.filter(s => services.includes(s.ServiceNo)) : data;
+    }
+    const { ltaProxy } = Store.cfg();
+    try {
+      const url = ltaProxy
+        ? `${ltaProxy}/bus-arrival?BusStopCode=${stopCode}`
+        : `https://arrivelah2.busrouter.sg/?id=${stopCode}`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const json = await res.json();
+      const all = ltaProxy
+        ? (json.Services || [])
+        : (json.services || []).map(s => ({
+            ServiceNo: s.no,
+            NextBus:  API._ah(s.next),
+            NextBus2: API._ah(s.next2),
+            NextBus3: API._ah(s.next3),
+          }));
+      await idbPut('arr_cache', { key:cacheKey, data:all, ts:Date.now() });
+      return services.length ? all.filter(s => services.includes(s.ServiceNo)) : all;
+    } catch {
+      return mockArrivals(stopCode, services);
+    }
+  },
+  _ah(b) {
+    if (!b || b.duration_ms == null) return { EstimatedArrival: null };
+    return { EstimatedArrival: new Date(Date.now()+b.duration_ms).toISOString(), Type:b.type==='dd'?'DD':b.type==='bd'?'BD':'SD', Load:'SEA' };
+  },
+
+  async loadStopDirectory() {
+    const cached = await idbGet('stops_cache', 'directory');
+    if (cached && Date.now() - cached.ts < 7*24*3600*1000) return cached.data;
+    try {
+      const res = await fetch('https://busrouter.sg/data/2/bus-stops.json', { signal: AbortSignal.timeout(12000) });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const json = await res.json();
+      await idbPut('stops_cache', { key:'directory', data:json, ts:Date.now() });
+      return json;
+    } catch {
+      return cached?.data || null;
+    }
+  },
+
+  async aiChat(contents, system) {
+    const { geminiKey, geminiModel } = Store.cfg();
+    if (!geminiKey) return null;
+    if (!contents.length) return null;
+    const model = geminiModel || 'gemini-2.5-flash';
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`,
+        { method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({
+            systemInstruction: { parts:[{ text:system }] },
+            contents,
+            generationConfig: { maxOutputTokens:600, temperature:0.7 }
+          })
+        }
+      );
+      if (!res.ok) {
+        const errBody = await res.text().catch(() => '');
+        console.error('Gemini error', res.status, errBody);
+        return `__err${res.status}`;
+      }
+      const d = await res.json();
+      return d.candidates?.[0]?.content?.parts?.[0]?.text || null;
+    } catch(e) { console.error('Gemini fetch failed:', e); return null; }
+  },
+
+  async visionBus(b64, mimeType) {
+    const { geminiKey, geminiModel } = Store.cfg();
+    if (!geminiKey) return null;
+    const model = geminiModel || 'gemini-2.5-flash';
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`,
+        { method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({
+            contents:[{ parts:[
+              { inlineData:{ mimeType, data:b64 } },
+              { text:'What Singapore bus service number is shown? Reply with the number only (e.g. "74") or "unknown".' }
+            ]}],
+            generationConfig:{ maxOutputTokens:20 }
+          })
+        }
+      );
+      if (!res.ok) return null;
+      const d = await res.json();
+      return d.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || null;
+    } catch { return null; }
+  }
+};
+
+// ── HAVERSINE ────────────────────────────────
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 6371000, toRad = x => x * Math.PI / 180;
+  const dLat = toRad(lat2-lat1), dLon = toRad(lon2-lon1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function nearbyStops(dir, lat, lon, limit=12) {
+  if (!dir) return [];
+  return Object.entries(dir)
+    .map(([code, v]) => {
+      const [slat, slon, name] = Array.isArray(v) ? v : [v.lat||v.latitude, v.lng||v.lon||v.longitude, v.name||v.description||code];
+      if (!slat || !slon) return null;
+      return { code, name:String(name).trim(), dist: haversine(lat,lon,slat,slon) };
+    })
+    .filter(Boolean)
+    .sort((a,b)=>a.dist-b.dist)
+    .slice(0, limit);
+}
+
+// ── UI HELPERS ───────────────────────────────
+const UI = {
+  _toastTimer: null,
+  _currentScreen: 'home',
+  _screenHistory: [],
+
+  show(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+    document.getElementById('screen-'+id)?.classList.remove('hidden');
+    UI._currentScreen = id;
+  },
+
+  toast(msg, ms=2600) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(UI._toastTimer);
+    UI._toastTimer = setTimeout(() => t.classList.remove('show'), ms);
+  },
+
+  minsTo(iso) {
+    if (!iso) return null;
+    return Math.round((new Date(iso) - Date.now()) / 60000);
+  },
+
+  fmtMins(m) {
+    if (m === null || m === undefined) return 'N/A';
+    if (m <= 0) return 'Arriving';
+    return m === 1 ? '1 min' : `${m} mins`;
+  },
+
+  chipClass(m) {
+    if (m === null || m === undefined) return 'na';
+    if (m <= 1) return 'arriving';
+    if (m <= 3) return 'soon';
+    return 'okay';
+  },
+
+  busType(t) {
+    if (t === 'DD') return 'Double Deck';
+    if (t === 'BD') return 'Bendy';
+    return 'Single Deck';
+  },
+
+  uuid() { return crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)+Date.now().toString(36); },
+
+  fmtDist(m) {
+    return m < 1000 ? `${Math.round(m)}m` : `${(m/1000).toFixed(1)}km`;
+  }
+};
+
+// ── WATCH BUS ─────────────────────────────────
+const WatchBus = {
+  _timer: null,
+  _stopCode: null,
+  _serviceNo: null,
+
+  async start(stopCode, serviceNo) {
+    await Notification.requestPermission();
+    if (Notification.permission !== 'granted') { UI.toast('Enable notifications first in Settings'); return; }
+    WatchBus.stop();
+    WatchBus._stopCode = stopCode;
+    WatchBus._serviceNo = serviceNo;
+    const threshold = parseInt(Store.cfg().watchThreshold || 3);
+    const banner = document.getElementById('watch-banner');
+    const watchText = document.getElementById('watch-text');
+    banner.classList.remove('hidden');
+    watchText.textContent = `Watching Bus ${serviceNo} — alert when < ${threshold} min`;
+    UI.toast(`👁 Watching Bus ${serviceNo}`);
+    WatchBus._poll(stopCode, serviceNo, threshold);
+    WatchBus._timer = setInterval(() => WatchBus._poll(stopCode, serviceNo, threshold), 30000);
+  },
+
+  async _poll(stopCode, serviceNo, threshold) {
+    // Force fresh data
+    await idbDelete('arr_cache', `arr_${stopCode}`).catch(() => {});
+    const services = await API.arrivals(stopCode, [serviceNo]);
+    const svc = services.find(s => s.ServiceNo === serviceNo);
+    if (!svc) return;
+    const mins = UI.minsTo(svc.NextBus?.EstimatedArrival);
+    if (mins !== null && mins <= threshold) {
+      WatchBus._notify(serviceNo, mins);
+      WatchBus.stop();
+    }
+  },
+
+  _notify(serviceNo, mins) {
+    new Notification(`🚌 Bus ${serviceNo} arriving!`, {
+      body: mins <= 0 ? 'Arriving NOW — board now!' : `In ${mins} min — leave now!`,
+      tag: `bus-${serviceNo}`,
+      requireInteraction: true
+    });
+    if (navigator.vibrate) navigator.vibrate([200, 100, 300]);
+  },
+
+  stop() {
+    if (WatchBus._timer) { clearInterval(WatchBus._timer); WatchBus._timer = null; }
+    WatchBus._stopCode = null;
+    WatchBus._serviceNo = null;
+    document.getElementById('watch-banner')?.classList.add('hidden');
+  }
+};
+
+// ── HOME ──────────────────────────────────────
+let _clockTimer = null;
+const Home = {
+  show() {
+    UI.show('home');
+    Home._updateNav();
+    Home._clock();
+    Home._renderDests();
+    Home._renderRecents();
+    Home._renderFavs();
+  },
+
+  _clock() {
+    clearInterval(_clockTimer);
+    const tick = () => {
+      const d = new Date(), h = d.getHours(), m = String(d.getMinutes()).padStart(2,'0');
+      document.getElementById('home-time').textContent = `${((h%12)||12)}:${m} ${h>=12?'PM':'AM'}`;
+    };
+    tick();
+    _clockTimer = setInterval(tick, 15000);
+  },
+
+  _renderDests() {
+    const dests = Store.dests();
+    const grid = document.getElementById('dest-grid');
+    const empty = document.getElementById('dest-empty');
+    if (!dests.length) { grid.innerHTML=''; empty.classList.remove('hidden'); return; }
+    empty.classList.add('hidden');
+    const ordered = Home._timeOrder(dests);
+    grid.innerHTML = ordered.map(d => `
+      <button class="dest-card ${d.color||'c-0'}" data-id="${d.id}">
+        <div class="card-shine"></div>
+        <div class="card-emoji">${d.emoji||'📍'}</div>
+        <div class="card-label">${d.label}</div>
+        <div class="card-bus">${d.buses?.length ? 'Bus ' + d.buses.slice(0,2).join(' / ') : ''}</div>
+        ${d.note ? `<div class="card-note">${d.note}</div>` : ''}
+      </button>`).join('');
+    grid.querySelectorAll('.dest-card').forEach(c => {
+      c.addEventListener('click', () => Arrivals.showForDest(c.dataset.id));
+    });
+  },
+
+  _timeOrder(dests) {
+    const h = new Date().getHours();
+    const isMorning = h >= 5 && h < 12;
+    const isEvening = h >= 17 && h < 23;
+    if (!isMorning && !isEvening) return dests;
+    return [...dests].sort((a, b) => {
+      const isWork = d => /work|office|hq|company/i.test(d.label);
+      const isHome = d => /home|house|flat|hdb/i.test(d.label);
+      if (isMorning) {
+        if (isWork(a) && !isWork(b)) return -1;
+        if (!isWork(a) && isWork(b)) return 1;
+      }
+      if (isEvening) {
+        if (isHome(a) && !isHome(b)) return -1;
+        if (!isHome(a) && isHome(b)) return 1;
+      }
+      return (a.order||0) - (b.order||0);
+    });
+  },
+
+  _renderRecents() {
+    const recents = Store.recents();
+    const section = document.getElementById('recents-section');
+    const row = document.getElementById('recents-row');
+    if (!recents.length) { section.classList.add('hidden'); return; }
+    section.classList.remove('hidden');
+    row.innerHTML = recents.map(r => `
+      <button class="recent-chip" onclick="Arrivals.showForStop('${r.code}','${r.name.replace(/'/g,"\\'")}')">
+        🚏 ${r.code} <span style="font-weight:500;color:var(--tx3)">${r.name.length>18?r.name.slice(0,18)+'…':r.name}</span>
+      </button>`).join('');
+  },
+
+  _renderFavs() {
+    const favs = Store.favServices();
+    const favStop = Store.favStop();
+    const section = document.getElementById('favs-section');
+    const row = document.getElementById('fav-row');
+    if (!favs.length) { section.classList.add('hidden'); return; }
+    section.classList.remove('hidden');
+    row.innerHTML = favs.map(svc => `
+      <button class="fav-chip" onclick="Arrivals.showForFav('${svc}')">
+        <span class="fav-chip-no">${svc}</span>
+        <span class="fav-chip-time" id="fav-time-${svc}">—</span>
+      </button>`).join('');
+    if (favStop) Home._loadFavTimes(favStop, favs);
+  },
+
+  async _loadFavTimes(stopCode, services) {
+    try {
+      const data = await API.arrivals(stopCode, services);
+      services.forEach(svc => {
+        const s = data.find(d => d.ServiceNo === svc);
+        const el = document.getElementById(`fav-time-${svc}`);
+        if (!el) return;
+        const mins = s ? UI.minsTo(s.NextBus?.EstimatedArrival) : null;
+        el.textContent = UI.fmtMins(mins);
+        el.style.color = mins !== null && mins <= 1 ? '#EF4444' : mins !== null && mins <= 3 ? '#F59E0B' : 'rgba(255,255,255,.55)';
+      });
+    } catch {}
+  },
+
+  _updateNav() {
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('nav-home')?.classList.add('active');
+  }
+};
+
+// ── ARRIVALS ──────────────────────────────────
+let _arrStop = { code: '', name: '' };
+let _arrDest = null;
+let _arrTimer = null;
+let _arrOpenedAt = null;
+let _compactView = false;
+
+const Arrivals = {
+  async showForDest(destId) {
+    const dests = Store.dests();
+    _arrDest = dests.find(d => d.id === destId) || null;
+    if (!_arrDest) return;
+    _arrStop = { code: _arrDest.stopCode, name: _arrDest.stopName };
+    App.addRecent(_arrStop);
+    document.getElementById('arr-back-btn').onclick = () => App.go('home');
+    document.getElementById('arr-title').textContent = `${_arrDest.emoji||'🚏'} ${_arrDest.label}`;
+    Arrivals._show();
+  },
+
+  async showForStop(code, name) {
+    _arrDest = null;
+    _arrStop = { code, name: name || `Stop ${code}` };
+    App.addRecent(_arrStop);
+    document.getElementById('arr-back-btn').onclick = () => App.go('home');
+    document.getElementById('arr-title').textContent = `Stop ${code}`;
+    Arrivals._show();
+  },
+
+  async showForFav(serviceNo) {
+    const favStop = Store.favStop();
+    if (!favStop) { UI.toast('Set a favourite stop in Settings first'); return; }
+    _arrDest = null;
+    _arrStop = { code: favStop, name: `Stop ${favStop}` };
+    App.addRecent(_arrStop);
+    document.getElementById('arr-back-btn').onclick = () => App.go('home');
+    document.getElementById('arr-title').textContent = `Bus ${serviceNo}`;
+    Arrivals._show([serviceNo]);
+  },
+
+  _show(filterServices = null) {
+    _arrOpenedAt = Date.now();
+    document.getElementById('arr-stop-code').textContent = _arrStop.code;
+    document.getElementById('arr-stop-name').textContent = _arrStop.name;
+    document.getElementById('view-toggle-btn').textContent = _compactView ? '▦ Full' : '☰ Compact';
+    WatchBus.stop();
+    UI.show('arrivals');
+    Arrivals.refresh(filterServices);
+    clearInterval(_arrTimer);
+    _arrTimer = setInterval(() => Arrivals.refresh(filterServices), 60000);
+  },
+
+  toggleView() {
+    _compactView = !_compactView;
+    document.getElementById('view-toggle-btn').textContent = _compactView ? '▦ Full' : '☰ Compact';
+    Arrivals.refresh();
+  },
+
+  async refresh(filterServices = null) {
+    const list = document.getElementById('arr-list');
+    list.innerHTML = '<div class="arr-loading">Loading... 🔄</div>';
+    const services = filterServices || (_arrDest?.buses || []);
+    const data = await API.arrivals(_arrStop.code, services);
+    if (!data.length) {
+      list.innerHTML = '<div class="arr-loading">No services found for this stop 😔</div>';
+      return;
+    }
+    list.innerHTML = data.map(s => Arrivals._cardHTML(s)).join('');
+    // Board button
+    list.innerHTML += `<button class="board-btn" id="board-confirm-btn" style="display:none">🚌 I'm on the bus</button>`;
+    list.querySelectorAll('.arr-card').forEach(card => {
+      card.addEventListener('click', () => Arrivals._confirmBoard(card.dataset.svc));
+    });
+    list.querySelectorAll('.arr-watch-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        WatchBus.start(_arrStop.code, btn.dataset.svc);
+      });
+    });
+  },
+
+  _cardHTML(s) {
+    const m1 = UI.minsTo(s.NextBus?.EstimatedArrival);
+    const m2 = UI.minsTo(s.NextBus2?.EstimatedArrival);
+    const m3 = UI.minsTo(s.NextBus3?.EstimatedArrival);
+    const cls = UI.chipClass(m1);
+    const ac = cls==='arriving'?'#EF4444':cls==='soon'?'#F59E0B':'#22C55E';
+    const next = [m2,m3].filter(x=>x!==null).map(UI.fmtMins).join(' · ');
+    if (_compactView) {
+      return `<div class="arr-card compact" style="--ac:${ac}" data-svc="${s.ServiceNo}">
+        <div class="arr-top">
+          <div class="arr-no">${s.ServiceNo}</div>
+          <div class="arr-chips">
+            <div class="arr-chip ${cls}">${UI.fmtMins(m1)}</div>
+          </div>
+          <button class="arr-watch-btn" data-svc="${s.ServiceNo}">👁 Watch</button>
+        </div>
+        <div class="arr-bot">
+          <div class="arr-type">${UI.busType(s.NextBus?.Type)}</div>
+          <div class="arr-next">${next||'—'}</div>
+        </div>
+      </div>`;
+    }
+    return `<div class="arr-card" style="--ac:${ac}" data-svc="${s.ServiceNo}">
+      <div class="arr-top">
+        <div>
+          <div class="arr-no">${s.ServiceNo}</div>
+          <div class="arr-type">${UI.busType(s.NextBus?.Type)}</div>
+        </div>
+        <div class="arr-chips">
+          <div class="arr-chip ${cls}">${UI.fmtMins(m1)}</div>
+          <button class="arr-watch-btn" data-svc="${s.ServiceNo}">👁 Watch</button>
+        </div>
+      </div>
+      <div class="arr-bot">
+        <div class="arr-type" style="opacity:.5">Next:</div>
+        <div class="arr-next">${next||'—'}</div>
+      </div>
+    </div>`;
+  },
+
+  _confirmBoard(serviceNo) {
+    const ov = document.createElement('div');
+    ov.className = 'scan-ov';
+    ov.innerHTML = `
+      <div class="scan-icon">🚌</div>
+      <div class="scan-title">Board Bus ${serviceNo}?</div>
+      <div class="scan-sub">${_arrDest ? `to ${_arrDest.emoji||'📍'} ${_arrDest.label} · ${_arrDest.stopsCount||'?'} stops` : _arrStop.name}</div>
+      <button class="scan-board-btn" id="confirm-board-yes">Yes, I'm on it</button>
+      <button class="scan-close" id="confirm-board-no">Wait, not yet</button>
+    `;
+    document.body.appendChild(ov);
+    document.getElementById('confirm-board-yes').onclick = () => {
+      document.body.removeChild(ov);
+      clearInterval(_arrTimer);
+      const waitMins = _arrOpenedAt ? Math.round((Date.now()-_arrOpenedAt)/60000) : null;
+      Journey.start(serviceNo, _arrDest, _arrStop, waitMins);
+    };
+    document.getElementById('confirm-board-no').onclick = () => document.body.removeChild(ov);
+  }
+};
+
+// ── JOURNEY ───────────────────────────────────
+const Journey = {
+  data: null,
+  _journeyId: null,
+  _elapsed: null,
+
+  async start(serviceNo, dest, stop, waitMins) {
+    const id = UI.uuid();
+    Journey.data = { id, serviceNo, dest, stop, stopsCount: dest?.stopsCount||5, passed:0, startTs:Date.now(), waitMins };
+    Journey._journeyId = id;
+    const record = {
+      id, date: today(), ts: Date.now(),
+      busNo: serviceNo,
+      fromStop: stop.code, fromStopName: stop.name,
+      toStop: dest?.stopCode || null, toStopName: dest?.stopName || dest?.label || null,
+      stopsCount: dest?.stopsCount || 0,
+      waitMins, completed: false
+    };
+    await idbPut('journeys', record);
+    UI.show('journey');
+    Journey._render();
+    Journey._startElapsed();
+  },
+
+  _render() {
+    if (!Journey.data) return;
+    const { serviceNo, dest, stopsCount, passed } = Journey.data;
+    const remaining = Math.max(0, stopsCount - passed);
+    document.getElementById('j-bus-no').textContent = serviceNo;
+    document.getElementById('j-dest-lbl').textContent = dest ? `→ ${dest.emoji||'📍'} ${dest.label}` : 'En route';
+    document.getElementById('j-count').textContent = remaining;
+    document.getElementById('j-off-stop').textContent = dest?.stopName || dest?.label || '—';
+    document.getElementById('j-stop-note').textContent = dest?.note || '';
+    document.getElementById('j-next-stop').textContent = remaining > 0 ? `${remaining} stop${remaining!==1?'s':''} remaining` : 'Get off here!';
+    // Dots
+    const MAX = 8, t = Math.min(stopsCount, MAX);
+    const p = stopsCount <= MAX ? passed : Math.round((passed/stopsCount)*t);
+    let h = '';
+    for (let i = 0; i <= t; i++) {
+      if (i>0) h += `<div class="s-line${i<=p?' passed':''}"></div>`;
+      h += `<div class="s-dot${i<p?' passed':i===p?' here':''}"></div>`;
+    }
+    document.getElementById('j-dots').innerHTML = h;
+    // Alert
+    const alert = document.getElementById('j-alert');
+    const alertText = document.getElementById('j-alert-text');
+    if (remaining <= 0) {
+      alert.classList.remove('hidden'); alert.classList.add('urgent');
+      alertText.textContent = '🚨 Get off NOW!';
+      if (navigator.vibrate) navigator.vibrate([300,100,300]);
+    } else if (remaining === 1) {
+      alert.classList.remove('hidden','urgent');
+      alertText.textContent = '🔔 Next stop — get ready to alight!';
+      if (navigator.vibrate) navigator.vibrate([200]);
+    } else if (remaining === 2) {
+      alert.classList.remove('hidden','urgent');
+      alertText.textContent = '⚠️ 2 stops to go — prepare to alight.';
+    } else {
+      alert.classList.add('hidden');
+    }
+  },
+
+  tapStop() {
+    if (!Journey.data) return;
+    Journey.data.passed = Math.min(Journey.data.passed+1, Journey.data.stopsCount);
+    Journey._render();
+    UI.toast('Stop ✓');
+  },
+
+  _startElapsed() {
+    clearInterval(Journey._elapsed);
+    Journey._elapsed = setInterval(() => {
+      if (!Journey.data) return;
+      const mins = Math.round((Date.now()-Journey.data.startTs)/60000);
+      document.getElementById('j-elapsed').textContent = `Journey time: ${mins} min`;
+    }, 30000);
+    document.getElementById('j-elapsed').textContent = 'Journey time: 0 min';
+  },
+
+  async end() {
+    clearInterval(Journey._elapsed);
+    if (Journey._journeyId) {
+      const record = await idbGet('journeys', Journey._journeyId);
+      if (record) {
+        record.completed = true;
+        record.travelMins = Math.round((Date.now()-Journey.data.startTs)/60000);
+        await idbPut('journeys', record);
+      }
+    }
+    Journey.data = null;
+    Journey._journeyId = null;
+    App.go('home');
+    UI.toast('Journey saved ✓');
+  }
+};
+
+// ── NEARBY ────────────────────────────────────
+const Nearby = {
+  _loaded: false,
+
+  show() {
+    UI.show('nearby');
+    document.querySelectorAll('#screen-nearby .nav-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelector('#screen-nearby .nav-btn[onclick*="nearby"]')?.classList.add('active');
+  },
+
+  async locate() {
+    if (!navigator.geolocation) { UI.toast('GPS not available on this device'); return; }
+    document.getElementById('nearby-gps-prompt').classList.add('hidden');
+    document.getElementById('nearby-loading').classList.remove('hidden');
+    navigator.geolocation.getCurrentPosition(
+      async pos => {
+        const { latitude:lat, longitude:lon } = pos.coords;
+        const dir = await API.loadStopDirectory();
+        document.getElementById('nearby-loading').classList.add('hidden');
+        if (!dir) { document.getElementById('nearby-error').classList.remove('hidden'); return; }
+        const stops = nearbyStops(dir, lat, lon);
+        Nearby._render(stops);
+      },
+      () => {
+        document.getElementById('nearby-loading').classList.add('hidden');
+        document.getElementById('nearby-error').classList.remove('hidden');
+      },
+      { enableHighAccuracy:true, timeout:10000 }
+    );
+  },
+
+  _render(stops) {
+    const list = document.getElementById('nearby-list');
+    list.classList.remove('hidden');
+    if (!stops.length) { list.innerHTML = '<div class="arr-loading">No stops found nearby 😔</div>'; return; }
+    list.innerHTML = stops.map(s => `
+      <div class="nearby-item" onclick="Arrivals.showForStop('${s.code}','${s.name.replace(/'/g,"\\'")}');Nearby.show()">
+        <div class="ni-dist">
+          <div class="ni-dist-val">${UI.fmtDist(s.dist).replace(/[a-z]+/,'')}</div>
+          <div class="ni-dist-unit">${s.dist<1000?'m':'km'}</div>
+        </div>
+        <div class="ni-info">
+          <div class="ni-code">${s.code}</div>
+          <div class="ni-name">${s.name}</div>
+        </div>
+        <div class="ni-arrow">›</div>
+      </div>`).join('');
+  },
+
+  refresh() {
+    document.getElementById('nearby-gps-prompt').classList.add('hidden');
+    document.getElementById('nearby-list').classList.add('hidden');
+    document.getElementById('nearby-error').classList.add('hidden');
+    Nearby.locate();
+  }
+};
+
+// ── AI CHAT ───────────────────────────────────
+const AIChat = {
+  history: [],
+
+  show() {
+    UI.show('ai');
+    const { geminiKey } = Store.cfg();
+    const noKey = document.getElementById('ai-no-key');
+    const chatArea = document.getElementById('chat-area');
+    const chatOpts = document.getElementById('chat-opts');
+    const inputRow = document.querySelector('.chat-input-row');
+    if (!geminiKey) {
+      noKey.classList.remove('hidden');
+      chatArea.style.display = 'none';
+      chatOpts.style.display = 'none';
+      inputRow.style.display = 'none';
+    } else {
+      noKey.classList.add('hidden');
+      chatArea.style.display = '';
+      chatOpts.style.display = '';
+      inputRow.style.display = '';
+      if (!AIChat.history.length) AIChat._welcome();
+    }
+  },
+
+  _welcome() {
+    AIChat._aiSay("Hi! I know Singapore buses well. Ask me anything — routes, transfers, which bus to take, whether buses are running. 🚌");
+  },
+
+  _aiSay(text, opts=[]) {
+    const area = document.getElementById('chat-area');
+    const el = document.createElement('div');
+    el.className = 'chat-msg ai'; el.textContent = text;
+    area.appendChild(el); area.scrollTop = area.scrollHeight;
+    AIChat.history.push({ role:'model', parts:[{text}] });
+    const optArea = document.getElementById('chat-opts');
+    optArea.innerHTML = opts.map(o =>
+      `<button class="chat-opt" data-opt="${encodeURIComponent(o)}">${o}</button>`
+    ).join('');
+    optArea.querySelectorAll('.chat-opt').forEach(b => {
+      b.addEventListener('click', () => AIChat.send(decodeURIComponent(b.dataset.opt)));
+    });
+  },
+
+  clear() {
+    AIChat.history = [];
+    document.getElementById('chat-area').innerHTML = '';
+    document.getElementById('chat-opts').innerHTML = '';
+    AIChat._welcome();
+  },
+
+  async send(text) {
+    const inp = document.getElementById('chat-inp');
+    const msg = text || inp.value.trim();
+    if (!msg) return;
+    if (inp) inp.value = '';
+    document.getElementById('chat-opts').innerHTML = '';
+    // User bubble
+    const area = document.getElementById('chat-area');
+    const uel = document.createElement('div');
+    uel.className = 'chat-msg user'; uel.textContent = msg;
+    area.appendChild(uel); area.scrollTop = area.scrollHeight;
+    AIChat.history.push({ role:'user', parts:[{text:msg}] });
+    // Thinking
+    const thinking = document.createElement('div');
+    thinking.className = 'chat-thinking';
+    thinking.innerHTML = '<div class="dot-flash"><span></span><span></span><span></span></div>';
+    area.appendChild(thinking); area.scrollTop = area.scrollHeight;
+    // Build prompt
+    const dests = Store.dests();
+    const destStr = dests.map(d=>`${d.emoji||'📍'} ${d.label}: stop ${d.stopCode} (${d.stopName}), buses ${d.buses?.join(', ')}`).join('\n');
+    const system = `You are BusyBus AI, a Singapore bus commuter assistant for adults.
+
+SINGAPORE BUS KNOWLEDGE:
+- Bus stops: 5-digit codes. Arrivals at arrivelah2.busrouter.sg/?id={code}
+- Night Rider (NR) buses: 11:30pm–4:30am Fri/Sat and eve of public holidays
+- Premium (P-series): air-con, limited stops
+- Key hubs: Tampines, Bedok, Jurong East, Woodlands, Yishun, Ang Mo Kio, Serangoon, Bishan, Toa Payoh, Orchard, City Hall, Harbourfront
+- Key malls: VivoCity (Harbourfront), JEM/Westgate (Jurong East), NEX (Serangoon), Causeway Point (Woodlands), AMK Hub, Northpoint (Yishun)
+- Home Team Academy: Queensway area (near Queensway MRT on CCL)
+- EZ-Link accepted on all buses. Fares from ~$0.77 (adult, no transfer discount if >45min)
+
+USER'S SAVED DESTINATIONS:
+${destStr || 'None saved.'}
+
+RULES:
+- Be direct and practical. This is for a commuter, not a child.
+- Give specific bus numbers, stop names, and transfer points where known.
+- Acknowledge what you don't know rather than guessing specific ETAs.
+- Always end with JSON on its own line: {"options":["Opt1","Opt2"]}
+- 2-3 options max, under 5 words each.`;
+    // Sanitise history for Gemini
+    const raw = AIChat.history.slice(-10);
+    const contents = [];
+    for (const m of raw) {
+      const last = contents[contents.length-1];
+      if (last && last.role === m.role) continue;
+      contents.push(m);
+    }
+    while (contents.length && contents[0].role !== 'user') contents.shift();
+    const reply = await API.aiChat(contents, system);
+    area.removeChild(thinking);
+    if (!reply) {
+      AIChat._aiSay("Couldn't reach the AI right now. Check your connection and try again.");
+      return;
+    }
+    if (typeof reply === 'string' && reply.startsWith('__err')) {
+      const status = reply.replace('__err','');
+      const msg = status==='404' ? `Model not found (404) — change the model in Settings.`
+                : status==='403' ? `Key rejected (403) — check your Gemini key in Settings.`
+                : `AI error (${status}) — check Settings.`;
+      AIChat._aiSay(`⚠️ ${msg}`, ['Go to Settings']);
+      return;
+    }
+    const m = reply.match(/\{"options":\s*\[[\s\S]*?\]\}/);
+    let opts = [], text2 = reply;
+    if (m) { try { opts = JSON.parse(m[0]).options; } catch {} text2 = reply.replace(m[0],'').trim(); }
+    AIChat._aiSay(text2, opts);
+  }
+};
+
+// ── STATS ─────────────────────────────────────
+const Stats = {
+  async show() {
+    UI.show('stats');
+    document.querySelectorAll('#screen-stats .nav-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelector('#screen-stats .nav-btn[onclick*="stats"]')?.classList.add('active');
+    const all = await idbGetAll('journeys');
+    const completed = all.filter(j => j.completed);
+    const statsEmpty = document.getElementById('stats-empty');
+    if (!completed.length) { statsEmpty.classList.remove('hidden'); return; }
+    statsEmpty.classList.add('hidden');
+    Stats._renderCards(completed);
+    Stats._renderTopBuses(completed);
+    Stats._renderTopStops(completed);
+    Stats._renderHistory(all.slice(-20).reverse());
+  },
+
+  _renderCards(journeys) {
+    const now = Date.now();
+    const week = journeys.filter(j => now - j.ts < 7*24*3600*1000).length;
+    const month = journeys.filter(j => now - j.ts < 30*24*3600*1000).length;
+    const withWait = journeys.filter(j => j.waitMins !== null && j.waitMins >= 0);
+    const avgWait = withWait.length ? Math.round(withWait.reduce((s,j)=>s+j.waitMins,0)/withWait.length) : '—';
+    document.getElementById('stats-cards').innerHTML = `
+      <div class="stat-card"><div class="stat-val">${journeys.length}</div><div class="stat-lbl">Total trips</div></div>
+      <div class="stat-card"><div class="stat-val">${week}</div><div class="stat-lbl">This week</div></div>
+      <div class="stat-card"><div class="stat-val">${avgWait}${typeof avgWait==='number'?'m':''}</div><div class="stat-lbl">Avg wait</div></div>`;
+  },
+
+  _renderTopBuses(journeys) {
+    const counts = {};
+    journeys.forEach(j => { if(j.busNo) counts[j.busNo] = (counts[j.busNo]||0)+1; });
+    const top = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,3);
+    const max = top[0]?.[1] || 1;
+    document.getElementById('top-buses').innerHTML = top.length
+      ? top.map(([no,cnt],i) => `
+        <div class="top-item">
+          <div class="top-rank">${['🥇','🥈','🥉'][i]||i+1}</div>
+          <div class="top-info">
+            <div class="top-val">${no}</div>
+            <div class="top-sub">${cnt} trip${cnt!==1?'s':''}</div>
+          </div>
+          <div class="top-bar-wrap"><div class="top-bar" style="width:${Math.round((cnt/max)*100)}%"></div></div>
+        </div>`).join('')
+      : '<div class="top-item"><div class="top-sub" style="padding:4px 0">No data yet</div></div>';
+  },
+
+  _renderTopStops(journeys) {
+    const counts = {};
+    journeys.forEach(j => {
+      const key = j.fromStop;
+      if (key) counts[key] = { cnt:(counts[key]?.cnt||0)+1, name:j.fromStopName||key };
+    });
+    const top = Object.entries(counts).sort((a,b)=>b[1].cnt-a[1].cnt).slice(0,3);
+    const max = top[0]?.[1]?.cnt || 1;
+    document.getElementById('top-stops').innerHTML = top.length
+      ? top.map(([code,{cnt,name}],i) => `
+        <div class="top-item">
+          <div class="top-rank">${['🥇','🥈','🥉'][i]||i+1}</div>
+          <div class="top-info">
+            <div class="top-val">${code}</div>
+            <div class="top-sub">${name} · ${cnt} time${cnt!==1?'s':''}</div>
+          </div>
+          <div class="top-bar-wrap"><div class="top-bar" style="width:${Math.round((cnt/max)*100)}%"></div></div>
+        </div>`).join('')
+      : '<div class="top-item"><div class="top-sub" style="padding:4px 0">No data yet</div></div>';
+  },
+
+  _renderHistory(journeys) {
+    document.getElementById('journey-history').innerHTML = journeys.length
+      ? journeys.map(j => `
+        <div class="journey-row">
+          <div class="jr-bus">${j.busNo||'?'}</div>
+          <div class="jr-info">
+            <div class="jr-route">${j.fromStopName||j.fromStop} → ${j.toStopName||j.toStop||'?'}</div>
+            <div class="jr-meta">${j.date} · ${j.stopsCount||'?'} stops</div>
+          </div>
+          <div class="jr-wait">${j.waitMins!=null?j.waitMins+'min wait':''}</div>
+        </div>`).join('')
+      : '<div class="arr-loading">No recent journeys</div>';
+  },
+
+  clearConfirm() {
+    if (!confirm('Clear all journey history? This cannot be undone.')) return;
+    idbClear('journeys').then(() => { UI.toast('History cleared'); Stats.show(); });
+  }
+};
+
+// ── SETTINGS ──────────────────────────────────
+const Settings = {
+  show() {
+    UI.show('settings');
+    Settings._load();
+    document.querySelectorAll('#screen-settings .nav-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelector('#screen-settings .nav-btn[onclick*="settings"]')?.classList.add('active');
+  },
+
+  _load() {
+    const cfg = Store.cfg();
+    document.getElementById('ai-key-inp').value = cfg.geminiKey || '';
+    document.getElementById('ai-model-sel').value = cfg.geminiModel || 'gemini-2.5-flash';
+    document.getElementById('watch-thresh-sel').value = cfg.watchThreshold || '3';
+    const favs = Store.favServices();
+    document.getElementById('fav-services-inp').value = favs.join(', ');
+    document.getElementById('fav-stop-inp').value = Store.favStop();
+    Settings._renderDestList();
+    Settings._updateThemeUI(cfg.theme || 'light');
+    Settings._checkNotifPermission();
+  },
+
+  _renderDestList() {
+    const dests = Store.dests();
+    const list = document.getElementById('dest-settings-list');
+    if (!dests.length) {
+      list.innerHTML = '<div style="padding:12px 14px;font-size:13px;color:var(--tx3)">No destinations — tap + below to add.</div>';
+      return;
+    }
+    list.innerHTML = dests.map((d,i) => `
+      <div class="dest-setting-item">
+        <div class="dsi-emoji">${d.emoji||'📍'}</div>
+        <div class="dsi-info">
+          <div class="dsi-label">${d.label}</div>
+          <div class="dsi-sub">Stop ${d.stopCode} · Bus ${d.buses?.join(', ') || '—'}</div>
+        </div>
+        <div class="dsi-btns">
+          <button class="dsi-btn" onclick="DestModal.open(${i})">✏️</button>
+          <button class="dsi-btn" onclick="Settings.deleteDest(${i})">🗑️</button>
+        </div>
+      </div>`).join('');
+  },
+
+  deleteDest(i) {
+    const d = Store.dests(); d.splice(i,1); Store.setDests(d);
+    Settings._renderDestList();
+    UI.toast('Destination removed');
+  },
+
+  save() {
+    Store.setCfg({
+      geminiKey: document.getElementById('ai-key-inp').value.trim(),
+      geminiModel: document.getElementById('ai-model-sel').value,
+      watchThreshold: document.getElementById('watch-thresh-sel').value,
+      theme: Store.cfg().theme || 'light'
+    });
+    const favsRaw = document.getElementById('fav-services-inp').value;
+    Store.setFavServices(favsRaw.split(',').map(s=>s.trim()).filter(Boolean));
+    Store.setFavStop(document.getElementById('fav-stop-inp').value.trim());
+    UI.toast('Settings saved ✓');
+  },
+
+  _updateThemeUI(theme) {
+    document.querySelectorAll('.theme-opt').forEach(b => {
+      b.classList.toggle('active', b.dataset.t === theme);
+    });
+  },
+
+  _checkNotifPermission() {
+    const status = document.getElementById('notif-status');
+    const btn = document.getElementById('notif-req-btn');
+    if (!('Notification' in window)) { status.textContent = 'Not supported on this device'; return; }
+    const p = Notification.permission;
+    status.textContent = p === 'granted' ? '✅ Enabled' : p === 'denied' ? '❌ Blocked — enable in browser settings' : '⚪ Not enabled';
+    btn.classList.toggle('hidden', p !== 'default');
+  },
+
+  requestNotifPermission() {
+    Notification.requestPermission().then(() => Settings._checkNotifPermission());
+  },
+
+  clearRecents() {
+    Store.setRecents([]);
+    UI.toast('Recent stops cleared');
+    if (UI._currentScreen === 'settings') Settings._load();
+  }
+};
+
+// ── DESTINATION MODAL ─────────────────────────
+let _editDestIdx = -1;
+const DestModal = {
+  open(idx = -1) {
+    _editDestIdx = idx;
+    document.getElementById('dest-modal-title').textContent = idx < 0 ? 'Add Destination' : 'Edit Destination';
+    if (idx >= 0) {
+      const d = Store.dests()[idx];
+      document.getElementById('dm-label').value = d.label;
+      document.getElementById('dm-emoji').value = d.emoji || '';
+      document.getElementById('dm-code').value = d.stopCode;
+      document.getElementById('dm-stop-name').value = d.stopName || '';
+      document.getElementById('dm-buses').value = d.buses?.join(', ') || '';
+      document.getElementById('dm-stops').value = d.stopsCount || '';
+      document.getElementById('dm-note').value = d.note || '';
+    } else {
+      ['dm-label','dm-emoji','dm-code','dm-stop-name','dm-buses','dm-stops','dm-note'].forEach(id => {
+        document.getElementById(id).value = '';
+      });
+    }
+    document.getElementById('dest-modal').classList.remove('hidden');
+  },
+
+  close() { document.getElementById('dest-modal').classList.add('hidden'); },
+
+  save() {
+    const label = document.getElementById('dm-label').value.trim();
+    const emoji = document.getElementById('dm-emoji').value.trim() || EMOJI_MAP[label] || '📍';
+    const code = document.getElementById('dm-code').value.trim();
+    const stopName = document.getElementById('dm-stop-name').value.trim();
+    const busesRaw = document.getElementById('dm-buses').value;
+    const stopsCount = parseInt(document.getElementById('dm-stops').value) || 5;
+    const note = document.getElementById('dm-note').value.trim();
+
+    if (!label) { UI.toast('Please enter a label'); return; }
+    if (!/^\d{5}$/.test(code)) { UI.toast('Stop code must be 5 digits'); return; }
+    if (!busesRaw.trim()) { UI.toast('Enter at least one bus number'); return; }
+
+    const buses = busesRaw.split(',').map(b=>b.trim()).filter(Boolean);
+    const dests = Store.dests();
+    const colorMap = { 'Home':'c-home','Work':'c-work','Office':'c-work','Gym':'c-gym' };
+    const color = colorMap[label] || DEST_COLORS[(dests.length) % DEST_COLORS.length];
+
+    const dest = {
+      id: _editDestIdx >= 0 ? dests[_editDestIdx].id : UI.uuid(),
+      label, emoji, color,
+      stopCode: code,
+      stopName: stopName || `Stop ${code}`,
+      buses, stopsCount, note,
+      order: _editDestIdx >= 0 ? dests[_editDestIdx].order : dests.length
+    };
+
+    if (_editDestIdx >= 0) dests[_editDestIdx] = dest;
+    else dests.push(dest);
+    Store.setDests(dests);
+    DestModal.close();
+    Settings._renderDestList();
+    UI.toast(_editDestIdx >= 0 ? 'Destination updated ✓' : 'Destination added ✓');
+  }
+};
+
+// ── CAMERA / BUS SCAN ─────────────────────────
+document.getElementById('cam-input').addEventListener('change', async e => {
+  const file = e.target.files[0]; if (!file) return;
+  e.target.value = '';
+  const { geminiKey } = Store.cfg();
+  if (!geminiKey) { const n = prompt('Type the bus number you see:'); if (n) App._checkBusNum(n.trim()); return; }
+  UI.toast('Scanning... 📷');
+  const b64 = await new Promise((res,rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+  const detected = await API.visionBus(b64, file.type);
+  if (!detected || detected.toLowerCase() === 'unknown') { UI.toast("Couldn't read the bus number — try again in better light"); return; }
+  App._checkBusNum(detected);
+});
+
+// ── APP ───────────────────────────────────────
+const App = {
+  _prevScreen: 'home',
+
+  async init() {
+    await initIDB();
+    App._applyTheme(Store.cfg().theme || 'light');
+    App.go('home');
+  },
+
+  go(screen) {
+    clearInterval(_arrTimer);
+    App._prevScreen = UI._currentScreen;
+    if (screen === 'home')     { Home.show(); App._setNav('home'); }
+    else if (screen === 'nearby')   { Nearby.show(); }
+    else if (screen === 'ai')       { AIChat.show(); }
+    else if (screen === 'stats')    { Stats.show(); }
+    else if (screen === 'settings') { Settings.show(); }
+    else if (screen === 'arrivals') { UI.show('arrivals'); }
+    else if (screen === 'journey')  { UI.show('journey'); }
+  },
+
+  goBack() {
+    App.go(App._prevScreen || 'home');
+  },
+
+  _setNav(active) {
+    document.querySelectorAll('#screen-home .nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`nav-${active}`)?.classList.add('active');
+  },
+
+  lookupStop() {
+    const inp = document.getElementById('stop-code-inp');
+    const code = inp.value.trim();
+    if (!/^\d{5}$/.test(code)) { UI.toast('Enter a valid 5-digit stop code'); return; }
+    inp.value = '';
+    Arrivals.showForStop(code, `Stop ${code}`);
+  },
+
+  addRecent(stop) {
+    let recents = Store.recents().filter(r => r.code !== stop.code);
+    recents.unshift({ code: stop.code, name: stop.name });
+    Store.setRecents(recents.slice(0, 5));
+  },
+
+  toggleTheme() {
+    const current = Store.cfg().theme || 'light';
+    const next = current === 'light' ? 'dark' : 'light';
+    App.setTheme(next);
+  },
+
+  setTheme(theme) {
+    App._applyTheme(theme);
+    Store.setCfg({ theme });
+    Settings._updateThemeUI(theme);
+    document.getElementById('theme-btn').textContent = theme === 'dark' ? '🌙' : '☀️';
+  },
+
+  _applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    document.getElementById('theme-btn').textContent = theme === 'dark' ? '🌙' : '☀️';
+    document.getElementById('theme-meta').content = theme === 'dark' ? '#0F172A' : '#0EA5E9';
+  },
+
+  scanBus() { document.getElementById('cam-input').click(); },
+
+  _checkBusNum(detected) {
+    const expected = _arrDest?.buses || [];
+    const match = expected.some(b => b.toUpperCase() === detected.toUpperCase());
+    const ov = document.createElement('div');
+    ov.className = 'scan-ov';
+    ov.innerHTML = `
+      <div class="scan-icon">${match?'✅':'❌'}</div>
+      <div class="scan-title">${match?'Your bus!':'Not your bus'}</div>
+      <div class="scan-sub">${match?`Bus ${detected} — board now! 🎉`:`Detected: ${detected}<br>Waiting for: ${expected.join(' or ')}`}</div>
+      ${match?`<button class="scan-board-btn" id="scan-board-yes">I'm on it</button>`:''}
+      <button class="scan-close" id="scan-close">OK</button>
+    `;
+    document.body.appendChild(ov);
+    if (match) {
+      document.getElementById('scan-board-yes').onclick = () => {
+        document.body.removeChild(ov);
+        const waitMins = _arrOpenedAt ? Math.round((Date.now()-_arrOpenedAt)/60000) : null;
+        Journey.start(detected, _arrDest, _arrStop, waitMins);
+      };
+    }
+    document.getElementById('scan-close').onclick = () => document.body.removeChild(ov);
+  }
+};
+
+document.addEventListener('DOMContentLoaded', () => App.init());
+</script>
+</body>
+</html>
