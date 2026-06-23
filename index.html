@@ -1013,25 +1013,38 @@ const API = {
     if (!geminiKey) return null;
     if (!contents.length) return null;
     const model = geminiModel || 'gemini-2.5-flash';
-    try {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`,
-        { method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({
-            systemInstruction: { parts:[{ text:system }] },
-            contents,
-            generationConfig: { maxOutputTokens:600, temperature:0.7 }
-          })
+
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`,
+          { method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({
+              systemInstruction: { parts:[{ text:system }] },
+              contents,
+              generationConfig: { maxOutputTokens:600, temperature:0.7 }
+            })
+          }
+        );
+        // Retry once on transient server errors
+        if ((res.status === 503 || res.status === 429) && attempt < 2) {
+          await new Promise(r => setTimeout(r, 2000));
+          continue;
         }
-      );
-      if (!res.ok) {
-        const errBody = await res.text().catch(() => '');
-        console.error('Gemini error', res.status, errBody);
-        return `__err${res.status}`;
+        if (!res.ok) {
+          const errBody = await res.text().catch(() => '');
+          console.error('Gemini error', res.status, errBody);
+          return `__err${res.status}`;
+        }
+        const d = await res.json();
+        return d.candidates?.[0]?.content?.parts?.[0]?.text || null;
+      } catch(e) {
+        if (attempt < 2) { await new Promise(r => setTimeout(r, 1000)); continue; }
+        console.error('Gemini fetch failed:', e);
+        return null;
       }
-      const d = await res.json();
-      return d.candidates?.[0]?.content?.parts?.[0]?.text || null;
-    } catch(e) { console.error('Gemini fetch failed:', e); return null; }
+    }
+    return '__err503';
   },
 
   async visionBus(b64, mimeType) {
@@ -1541,22 +1554,56 @@ const Nearby = {
   async locate() {
     if (!navigator.geolocation) { UI.toast('GPS not available on this device'); return; }
     document.getElementById('nearby-gps-prompt').classList.add('hidden');
+    document.getElementById('nearby-list').classList.add('hidden');
+    document.getElementById('nearby-error').classList.add('hidden');
     document.getElementById('nearby-loading').classList.remove('hidden');
-    navigator.geolocation.getCurrentPosition(
-      async pos => {
-        const { latitude:lat, longitude:lon } = pos.coords;
-        const dir = await API.loadStopDirectory();
-        document.getElementById('nearby-loading').classList.add('hidden');
-        if (!dir) { document.getElementById('nearby-error').classList.remove('hidden'); return; }
-        const stops = nearbyStops(dir, lat, lon);
-        Nearby._render(stops);
-      },
-      () => {
-        document.getElementById('nearby-loading').classList.add('hidden');
-        document.getElementById('nearby-error').classList.remove('hidden');
-      },
-      { enableHighAccuracy:true, timeout:10000 }
-    );
+
+    const onSuccess = async pos => {
+      const { latitude:lat, longitude:lon } = pos.coords;
+      const dir = await API.loadStopDirectory();
+      document.getElementById('nearby-loading').classList.add('hidden');
+      if (!dir) {
+        Nearby._showError('Could not load bus stop directory. Check your internet connection.');
+        return;
+      }
+      const stops = nearbyStops(dir, lat, lon);
+      Nearby._render(stops);
+    };
+
+    const onError = (err) => {
+      document.getElementById('nearby-loading').classList.add('hidden');
+      // Try again without high accuracy before giving up
+      if (err.code === 3 && !Nearby._lowAccuracyAttempted) {
+        Nearby._lowAccuracyAttempted = true;
+        navigator.geolocation.getCurrentPosition(onSuccess, onError2,
+          { enableHighAccuracy:false, timeout:15000 });
+        return;
+      }
+      onError2(err);
+    };
+
+    const onError2 = (err) => {
+      document.getElementById('nearby-loading').classList.add('hidden');
+      if (err.code === 1) {
+        Nearby._showError(
+          '📍 Location permission denied.\n\nTo fix in Chrome:\n1. Tap the 🔒 icon in the address bar\n2. Tap Permissions → Location → Allow\n3. Reload the page'
+        );
+      } else if (err.code === 2) {
+        Nearby._showError('GPS signal unavailable. Try moving outdoors or to a window and tap 🔄 Refresh.');
+      } else {
+        Nearby._showError('GPS timed out. Make sure location is enabled in your phone settings, then tap 🔄 Refresh.');
+      }
+    };
+
+    Nearby._lowAccuracyAttempted = false;
+    navigator.geolocation.getCurrentPosition(onSuccess, onError,
+      { enableHighAccuracy:true, timeout:12000 });
+  },
+
+  _showError(msg) {
+    const el = document.getElementById('nearby-error');
+    el.innerHTML = msg.replace(/\n/g, '<br>');
+    el.classList.remove('hidden');
   },
 
   _render(stops) {
@@ -1693,9 +1740,10 @@ RULES:
     }
     if (typeof reply === 'string' && reply.startsWith('__err')) {
       const status = reply.replace('__err','');
-      const msg = status==='404' ? `Model not found (404) — change the model in Settings.`
+      const msg = status==='404' ? `Model not found (404) — try a different model in Settings.`
                 : status==='403' ? `Key rejected (403) — check your Gemini key in Settings.`
-                : `AI error (${status}) — check Settings.`;
+                : status==='503' || status==='429' ? `AI is temporarily busy — tap Send again in a moment. (${status})`
+                : `AI error (${status}) — try again or switch model in Settings.`;
       AIChat._aiSay(`⚠️ ${msg}`, ['Go to Settings']);
       return;
     }
