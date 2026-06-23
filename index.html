@@ -1026,8 +1026,9 @@ const API = {
             })
           }
         );
-        // Retry once on transient server errors
-        if ((res.status === 503 || res.status === 429) && attempt < 2) {
+        // 503 = transient overload → retry once after 2s
+        // 429 = rate limit → don't retry, tell user to wait
+        if (res.status === 503 && attempt < 2) {
           await new Promise(r => setTimeout(r, 2000));
           continue;
         }
@@ -1761,7 +1762,8 @@ RULES:
       const status = reply.replace('__err','');
       const msg = status==='404' ? `Model not found (404) — try a different model in Settings.`
                 : status==='403' ? `Key rejected (403) — check your Gemini key in Settings.`
-                : status==='503' || status==='429' ? `AI is temporarily busy — tap Send again in a moment. (${status})`
+                : status==='429' ? `Free tier rate limit reached. Wait ~1 minute then tap Send again. (429)`
+                : status==='503' ? `AI is temporarily busy — tap Send again in a moment. (503)`
                 : `AI error (${status}) — try again or switch model in Settings.`;
       AIChat._aiSay(`⚠️ ${msg}`, ['Go to Settings']);
       return;
