@@ -998,7 +998,11 @@ const API = {
     const cached = await idbGet('stops_cache', 'directory');
     if (cached && Date.now() - cached.ts < 7*24*3600*1000) return cached.data;
     try {
-      const res = await fetch('https://busrouter.sg/data/2/bus-stops.json', { signal: AbortSignal.timeout(12000) });
+      // raw.githubusercontent.com has CORS open; busrouter.sg does not
+      const res = await fetch(
+        'https://raw.githubusercontent.com/cheeaun/sgbusdata/master/data/v1/stops.min.json',
+        { signal: AbortSignal.timeout(15000) }
+      );
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const json = await res.json();
       await idbPut('stops_cache', { key:'directory', data:json, ts:Date.now() });
@@ -1084,12 +1088,18 @@ function nearbyStops(dir, lat, lon, limit=12) {
   if (!dir) return [];
   return Object.entries(dir)
     .map(([code, v]) => {
-      const [slat, slon, name] = Array.isArray(v) ? v : [v.lat||v.latitude, v.lng||v.lon||v.longitude, v.name||v.description||code];
+      // sgbusdata format: [lon, lat, stopName, roadName]
+      let slat, slon, name;
+      if (Array.isArray(v)) {
+        slon = v[0]; slat = v[1]; name = v[2] || code;
+      } else {
+        slat = v.lat||v.latitude; slon = v.lng||v.lon||v.longitude; name = v.name||code;
+      }
       if (!slat || !slon) return null;
-      return { code, name:String(name).trim(), dist: haversine(lat,lon,slat,slon) };
+      return { code, name: String(name).trim(), dist: haversine(lat, lon, slat, slon) };
     })
     .filter(Boolean)
-    .sort((a,b)=>a.dist-b.dist)
+    .sort((a,b) => a.dist - b.dist)
     .slice(0, limit);
 }
 
